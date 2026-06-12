@@ -274,6 +274,7 @@ const CR = {
                         <a href="/about.html">A propos</a>
                         <a href="/legal.html">Mentions legales</a>
                         <a href="/legal.html#rgpd">Confidentialite</a>
+                        <a href="#" onclick="return CR.cookieSettings(event)">Gerer les cookies</a>
                         <a href="/contact.html">Contact</a>
                     </div>
                 </div>
@@ -319,7 +320,59 @@ const CR = {
         });
     },
 
+    // ---- Consentement cookies (RGPD) ----
+    // Stocke le choix dans un cookie "cr_consent" (180 jours, reco CNIL).
+    // Valeurs : 'all' (tout accepte) ou 'essential' (essentiels uniquement).
+    consentGet() {
+        const m = document.cookie.match(/(?:^|;\s*)cr_consent=([^;]+)/);
+        return m ? decodeURIComponent(m[1]) : null;
+    },
+    consentSet(value) {
+        document.cookie = 'cr_consent=' + encodeURIComponent(value) + '; max-age=' + (180 * 24 * 3600) + '; path=/; SameSite=Lax';
+        const b = document.getElementById('cr-cookie-banner');
+        if (b) b.remove();
+        if (value === 'all') {
+            CR.toast('Cookies acceptes, merci !', 'success');
+            CR.track('cookie_consent', { choice: 'all' });
+            CR.track('page_view', { path: location.pathname });
+        } else {
+            CR.toast('Seuls les cookies essentiels seront utilises.', 'info');
+        }
+    },
+    cookieSettings(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        document.cookie = 'cr_consent=; max-age=0; path=/; SameSite=Lax';
+        CR.renderCookieBanner();
+        return false;
+    },
+    renderCookieBanner() {
+        if (CR.consentGet()) return;
+        if (document.getElementById('cr-cookie-banner')) return;
+        const div = document.createElement('div');
+        div.id = 'cr-cookie-banner';
+        div.className = 'cookie-banner';
+        div.setAttribute('role', 'dialog');
+        div.setAttribute('aria-live', 'polite');
+        div.setAttribute('aria-label', 'Consentement aux cookies');
+        div.innerHTML = `
+        <div class="cookie-banner-inner">
+            <div class="cookie-banner-text">
+                <strong>🍪 Respect de votre vie privee</strong>
+                <p>CultureRadar utilise des cookies essentiels au fonctionnement du site et, avec votre accord,
+                des cookies de mesure d audience anonyme pour ameliorer la plateforme.
+                <a href="/legal.html#rgpd">En savoir plus</a></p>
+            </div>
+            <div class="cookie-banner-actions">
+                <button class="btn btn-outline btn-sm" onclick="CR.consentSet('essential')">Essentiels uniquement</button>
+                <button class="btn btn-primary btn-sm" onclick="CR.consentSet('all')">Tout accepter</button>
+            </div>
+        </div>`;
+        document.body.appendChild(div);
+    },
+
     track(event_type, data = {}) {
+        // Mesure d audience uniquement si l utilisateur a tout accepte (RGPD)
+        if (CR.consentGet() !== 'all') return;
         try {
             fetch('/api/analytics', {
                 method: 'POST',
@@ -446,6 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
     CR.applyTheme();
     CR.renderHeader();
     CR.renderFooter();
+    CR.renderCookieBanner(); // demande de consentement a la premiere visite
     CR.track('page_view', { path: location.pathname });
     if (CR.user()) setTimeout(() => CR.refreshEnvies(), 200);
 });

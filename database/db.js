@@ -10,23 +10,27 @@ let db = null;
 
 function getDb() {
     if (!db) {
-        const needInit = !fs.existsSync(DB_PATH);
+        const isNew = !fs.existsSync(DB_PATH);
         db = new Database(DB_PATH);
         db.pragma('journal_mode = WAL');
         db.pragma('foreign_keys = ON');
 
-        if (needInit) {
-            const schema = fs.readFileSync(SCHEMA_PATH, 'utf-8');
-            db.exec(schema);
-            console.log('[db] Schema applique sur nouvelle DB.');
-        }
+        // Le schema est idempotent (CREATE TABLE/INDEX IF NOT EXISTS) : on
+        // l applique a chaque ouverture pour garantir que toutes les tables
+        // existent, meme si un fichier DB incomplet traine sur le disque.
+        const schema = fs.readFileSync(SCHEMA_PATH, 'utf-8');
+        db.exec(schema);
+        if (isNew) console.log('[db] Schema applique sur nouvelle DB.');
     }
     return db;
 }
 
 function resetDb() {
     if (db) { db.close(); db = null; }
-    if (fs.existsSync(DB_PATH)) fs.unlinkSync(DB_PATH);
+    // Supprimer aussi les fichiers WAL/SHM pour eviter tout residu corrompu
+    for (const f of [DB_PATH, DB_PATH + '-wal', DB_PATH + '-shm']) {
+        if (fs.existsSync(f)) fs.unlinkSync(f);
+    }
     return getDb();
 }
 

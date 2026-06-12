@@ -729,3 +729,27 @@ code { font-family: 'SF Mono', Monaco, monospace; background: var(--cr-overlay);
 
 /* ============ Tabs (profile) ============ */
 .tab { animation: fadeIn .2s; }
+
+/* ============ Bandeau cookies (RGPD) ============ */
+.cookie-banner {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000;
+    background: var(--cr-bg-2);
+    border-top: 2px solid var(--cr-primary);
+    box-shadow: 0 -8px 24px rgba(35,61,79,.18);
+    padding: 1rem 0;
+    animation: cookieSlideUp .35s ease;
+}
+@keyframes cookieSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.cookie-banner-inner {
+    max-width: 1100px; margin: 0 auto; padding: 0 1.25rem;
+    display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;
+}
+.cookie-banner-text { flex: 1 1 420px; }
+.cookie-banner-text strong { display: block; margin-bottom: .25rem; color: var(--cr-dark); }
+.cookie-banner-text p { margin: 0; font-size: .9rem; color: var(--cr-text-2); }
+.cookie-banner-text a { color: var(--cr-primary); text-decoration: underline; }
+.cookie-banner-actions { display: flex; gap: .6rem; flex-wrap: wrap; }
+@media (max-width: 640px) {
+    .cookie-banner-actions { width: 100%; }
+    .cookie-banner-actions .btn { flex: 1; }
+}

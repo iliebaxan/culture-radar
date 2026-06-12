@@ -11,6 +11,21 @@ const path = require('path');
 const fs = require('fs');
 
 const { getDb } = require('./database/db');
+
+// Seed automatique au demarrage : garantit que la base contient le catalogue
+// (comptes demo + evenements) meme si la commande de demarrage du serveur
+// n execute pas "npm start" (ex : Render configure avec "node server.js").
+// Le script seed se termine immediatement si la base est deja peuplee.
+try {
+    require('child_process').execFileSync(
+        process.execPath,
+        [path.join(__dirname, 'database', 'seed.js')],
+        { stdio: 'inherit' }
+    );
+} catch (e) {
+    console.error('[seed] Echec du seed au demarrage (le serveur demarre quand meme) :', e.message);
+}
+
 getDb(); // init DB si besoin
 
 const app = express();
@@ -80,12 +95,15 @@ app.use('/api/*', (req, res) => res.status(404).json({ error: 'Route API inconnu
 const FRONTEND_ROUTES = new Set([
     '/', '/index', '/events', '/event', '/places', '/place', '/recommendations',
     '/login', '/register', '/profile', '/pricing', '/admin', '/pro', '/about',
-    '/contact', '/legal', '/reservation'
+    '/contact', '/legal', '/reservation', '/onboarding'
 ]);
 app.get('*', (req, res, next) => {
     if (req.path.includes('.')) return next();
-    const file = path.join(__dirname, 'public', 'index.html');
-    if (FRONTEND_ROUTES.has(req.path) && fs.existsSync(file)) return res.sendFile(file);
+    if (!FRONTEND_ROUTES.has(req.path)) return next();
+    // Servir la page correspondante (/login -> login.html, / -> index.html)
+    const name = (req.path === '/' || req.path === '/index') ? 'index' : req.path.slice(1);
+    const file = path.join(__dirname, 'public', name + '.html');
+    if (fs.existsSync(file)) return res.sendFile(file);
     next();
 });
 

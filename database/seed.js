@@ -7,15 +7,30 @@ const { getDb, resetDb } = require('./db');
 
 const args = process.argv.slice(2);
 const reset = args.includes('--reset');
-const db = reset ? resetDb() : getDb();
+let db = reset ? resetDb() : getDb();
 
 const existingUsers = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
-if (existingUsers > 0 && !reset) {
-    console.log(`[seed] ${existingUsers} utilisateurs deja presents. Utilisez --reset pour tout recreer.`);
+const upcomingEvents = db.prepare(`SELECT COUNT(*) as c FROM events WHERE status='published' AND date_debut >= datetime('now','-1 day')`).get().c;
+
+if (existingUsers > 0 && upcomingEvents > 0 && !reset) {
+    console.log(`[seed] Base deja peuplee (${existingUsers} utilisateurs, ${upcomingEvents} evenements a venir). Utilisez --reset pour tout recreer.`);
     process.exit(0);
+}
+if (existingUsers > 0 && !reset) {
+    // Base incomplete : des utilisateurs existent mais aucun evenement a venir
+    // (seed interrompu en cours de route, ou catalogue entierement expire).
+    // Avant ce correctif, le seed etait saute des que des utilisateurs
+    // existaient -> le site pouvait rester definitivement sans evenements
+    // (bug constate sur Render). On reinitialise pour garantir un catalogue.
+    console.warn(`[seed] Base incomplete detectee (${existingUsers} utilisateurs, ${upcomingEvents} evenement a venir). Reinitialisation complete...`);
+    db = resetDb();
 }
 
 console.log('[seed] Generation des donnees riches...');
+
+// Insertion atomique : si le seed echoue en cours de route, rien n est ecrit
+// (on evite une base a moitie remplie qui bloquerait les seeds suivants).
+db.exec('BEGIN IMMEDIATE');
 
 // =====================================================
 // UTILISATEURS
@@ -712,6 +727,8 @@ for (const e of events) {
 // Les comptes de demo (admin, B2C, B2B) ET le catalogue (events,
 // places) restent peuples pour permettre la navigation et la
 // connexion.
+
+db.exec('COMMIT');
 
 console.log('[seed] Donnees generees :');
 console.log(`  - ${users.length} utilisateurs (admin, users B2C, pros B2B)`);

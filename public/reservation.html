@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirection vers la billetterie - CultureRadar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+    <main class="section">
+        <div class="container" style="max-width: 720px;">
+            <div id="content"><div class="loader-full"><div class="spinner"></div></div></div>
+        </div>
+    </main>
+    <div id="cr-footer-placeholder"></div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        // La reservation se fait directement chez la source officielle
+        // (OpenAgenda, Paris Open Data, billetterie officielle...). Cette page sert de
+        // sas avant la redirection vers le site officiel de l evenement.
+        const qs = new URLSearchParams(location.search);
+        const eventId = qs.get('event_id') || qs.get('id');
+
+        async function init() {
+            const host = document.getElementById('content');
+            if (!eventId) {
+                host.innerHTML = `
+                    <a href="/events.html" class="back-link" style="color:var(--cr-primary);">← Retour au catalogue</a>
+                    <h1 style="font-size:2rem;margin-top:1rem;">Billetterie introuvable</h1>
+                    <p class="muted">Aucun evenement specifie. <a href="/events.html">Parcourir le catalogue</a></p>`;
+                return;
+            }
+            try {
+                const e = await CR.get(`/events/${eventId}`);
+                const url = e.url_billetterie || e.site_officiel || '';
+                const sourceLabel = e.source && e.source !== 'culture-radar' ? e.source : 'organisateur';
+                if (url) {
+                    host.innerHTML = `
+                        <a href="/event.html?id=${e.id}" class="back-link" style="color:var(--cr-primary);">← Retour a l evenement</a>
+                        <div class="card" style="padding:2rem;text-align:center;margin-top:1rem;">
+                            <div style="font-size:3rem;">🎟️</div>
+                            <h1 style="margin:.75rem 0;">Redirection vers la billetterie</h1>
+                            <p class="muted">CultureRadar est une plateforme de decouverte. La reservation se fait directement sur le site officiel de <strong>${CR.escape(sourceLabel)}</strong>.</p>
+                            <p class="mt-md"><strong>${CR.escape(e.titre)}</strong><br>
+                            <span class="muted small">${CR.fmtDate(e.date_debut)}${e.place_nom ? ' • ' + CR.escape(e.place_nom) : ''}</span></p>
+                            <a class="btn btn-primary mt-lg" href="${CR.escape(url)}" target="_blank" rel="noopener" id="go-btn">Continuer vers la billetterie ↗</a>
+                            <p class="muted small mt-md">Vous serez redirige automatiquement dans <span id="cd">5</span>s.</p>
+                            <a href="/event.html?id=${e.id}" class="btn btn-ghost btn-sm mt-sm">Annuler</a>
+                        </div>`;
+                    let cd = 5;
+                    const interval = setInterval(() => {
+                        cd--;
+                        const cdEl = document.getElementById('cd');
+                        if (cdEl) cdEl.textContent = cd;
+                        if (cd <= 0) {
+                            clearInterval(interval);
+                            window.open(url, '_blank', 'noopener');
+                            location.href = '/event.html?id=' + e.id;
+                        }
+                    }, 1000);
+                    CR.track('reservation_redirect', { event_id: e.id, source: e.source });
+                } else {
+                    host.innerHTML = `
+                        <a href="/event.html?id=${e.id}" class="back-link" style="color:var(--cr-primary);">← Retour a l evenement</a>
+                        <div class="card" style="padding:2rem;text-align:center;margin-top:1rem;">
+                            <div style="font-size:3rem;">📞</div>
+                            <h1 style="margin:.75rem 0;">Pas de billetterie en ligne</h1>
+                            <p class="muted">Cet evenement ne dispose pas de lien de billetterie. Vous pouvez contacter directement le lieu pour reserver vos places.</p>
+                            ${e.place_nom ? `<p class="mt-md"><strong>${CR.escape(e.place_nom)}</strong><br><span class="muted small">${CR.escape(e.adresse || '')} ${CR.escape(e.ville || '')}</span></p>` : ''}
+                            ${e.place_telephone ? `<p>📞 <a href="tel:${CR.escape(e.place_telephone)}">${CR.escape(e.place_telephone)}</a></p>` : ''}
+                            ${e.place_email ? `<p>✉️ <a href="mailto:${CR.escape(e.place_email)}">${CR.escape(e.place_email)}</a></p>` : ''}
+                            ${e.place_site_web ? `<p>🌐 <a href="${CR.escape(e.place_site_web)}" target="_blank" rel="noopener">Site officiel du lieu ↗</a></p>` : ''}
+                            <a class="btn btn-primary mt-lg" href="/event.html?id=${e.id}">Retour a l evenement</a>
+                        </div>`;
+                }
+            } catch (err) {
+                host.innerHTML = `<div class="alert alert-danger">${CR.escape(err.message)}</div>`;
+            }
+        }
+        init();
+    </script>
+</body>
+</html>

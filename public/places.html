@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lieux culturels - CultureRadar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+
+    <section class="section-sm hero-bar">
+        <div class="container">
+            <h1 style="font-size:2rem;">Lieux culturels en France</h1>
+            <p class="muted">Theatres, musees, galeries, salles de concert, espaces independants...</p>
+
+            <div class="mt-md" style="background:var(--cr-bg-2);padding:1rem;border-radius:var(--cr-radius);box-shadow:var(--cr-shadow);border:1px solid var(--cr-border);">
+                <div class="form-row">
+                    <div class="form-group" style="margin:0;">
+                        <label>Recherche</label>
+                        <input type="text" id="f-q" placeholder="Nom, description...">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label>Ville</label>
+                        <input type="text" id="f-ville" list="villes-list" placeholder="Toutes les villes">
+                        <datalist id="villes-list"></datalist>
+                    </div>
+                </div>
+                <div class="filters mt-md" id="cat-filters"></div>
+                <div class="flex gap-sm" style="flex-wrap:wrap;">
+                    <label class="filter-option" style="display:inline-flex;"><input type="checkbox" id="f-indep"> ⭐ Independant</label>
+                    <label class="filter-option" style="display:inline-flex;"><input type="checkbox" id="f-verified"> ✅ Verifie</label>
+                    <label class="filter-option" style="display:inline-flex;"><input type="checkbox" id="f-pmr"> ♿ Acces PMR</label>
+                    <select id="f-sort" style="width:auto;">
+                        <option value="events_desc">Plus d evenements</option>
+                        <option value="name_asc">Nom (A-Z)</option>
+                        <option value="name_desc">Nom (Z-A)</option>
+                        <option value="recent">Recent</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="load()">Appliquer</button>
+                    <button class="btn btn-ghost btn-sm" onclick="reset()">Reinitialiser</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div id="places-count" class="muted mb-md"></div>
+            <div id="places-grid" class="grid grid-3">
+                <div class="loader-full"><div class="spinner"></div></div>
+            </div>
+            <div id="pagination" class="mt-lg text-center"></div>
+        </div>
+    </section>
+
+    <div id="cr-footer-placeholder"></div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        const CATEGORIES = ['musee','theatre','salle_concert','galerie','cinema','bibliotheque','mediatheque','lieu_patrimoine','espace_independant'];
+        let state = { cat: null, page: 0, perPage: 24, total: 0, meta: null };
+
+        async function loadMeta() {
+            try {
+                state.meta = await CR.get('/places/filters/meta');
+                document.getElementById('villes-list').innerHTML = state.meta.villes.map(v => `<option value="${CR.escape(v.value)}">${v.count} lieux</option>`).join('');
+            } catch (e) { console.warn(e); }
+        }
+
+        function renderCats() {
+            const wrap = document.getElementById('cat-filters');
+            const counts = {};
+            (state.meta?.categories || []).forEach(c => counts[c.value] = c.count);
+            wrap.innerHTML = `<div class="filter-chip ${!state.cat ? 'active' : ''}" onclick="setCat(null)">Tous</div>` +
+                CATEGORIES.map(c => `<div class="filter-chip ${state.cat===c?'active':''}" onclick="setCat('${c}')">${CR.catIcon(c)} ${CR.catLabel(c)}${counts[c]?` <span class="muted small">(${counts[c]})</span>`:''}</div>`).join('');
+        }
+        window.setCat = (c) => { state.cat = c; state.page = 0; renderCats(); load(); };
+
+        async function load() {
+            const grid = document.getElementById('places-grid');
+            grid.innerHTML = '<div class="loader-full"><div class="spinner"></div></div>';
+            const params = new URLSearchParams({ limit: state.perPage, offset: state.page * state.perPage });
+            const q = document.getElementById('f-q').value.trim();
+            const ville = document.getElementById('f-ville').value.trim();
+            if (q) params.set('q', q);
+            if (ville) params.set('ville', ville);
+            if (state.cat) params.set('category', state.cat);
+            if (document.getElementById('f-indep').checked) params.set('independent', '1');
+            if (document.getElementById('f-verified').checked) params.set('verified', '1');
+            if (document.getElementById('f-pmr').checked) params.set('pmr', '1');
+            params.set('sort', document.getElementById('f-sort').value);
+
+            try {
+                const res = await fetch('/api/places?' + params.toString());
+                const places = await res.json();
+                state.total = Number(res.headers.get('X-Total-Count') || places.length);
+                document.getElementById('places-count').innerHTML = `<strong>${state.total}</strong> lieu${state.total > 1 ? 'x' : ''} trouve${state.total > 1 ? 's' : ''}`;
+                grid.innerHTML = places.length ? places.map(p => CR.renderPlaceCard(p)).join('') : '<p class="muted">Aucun lieu.</p>';
+                renderPagination();
+            } catch (e) {
+                grid.innerHTML = `<p class="alert alert-danger">${CR.escape(e.message)}</p>`;
+            }
+        }
+
+        function renderPagination() {
+            const host = document.getElementById('pagination');
+            const totalPages = Math.ceil(state.total / state.perPage);
+            if (totalPages <= 1) { host.innerHTML = ''; return; }
+            const cur = state.page;
+            let html = '<div class="flex gap-sm" style="justify-content:center;align-items:center;flex-wrap:wrap;">';
+            html += `<button class="btn btn-ghost btn-sm" ${cur === 0 ? 'disabled' : ''} onclick="goPage(${cur-1})">← Precedent</button>`;
+            const start = Math.max(0, cur - 2);
+            const end = Math.min(totalPages, start + 5);
+            for (let i = start; i < end; i++) html += `<button class="btn ${i === cur ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="goPage(${i})">${i + 1}</button>`;
+            html += `<button class="btn btn-ghost btn-sm" ${cur >= totalPages - 1 ? 'disabled' : ''} onclick="goPage(${cur+1})">Suivant →</button>`;
+            html += `<span class="small muted">Page ${cur + 1}/${totalPages}</span></div>`;
+            host.innerHTML = html;
+        }
+        window.goPage = (p) => { state.page = p; load(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+        window.reset = () => {
+            document.querySelectorAll('input[type=text]').forEach(el => el.value = '');
+            document.querySelectorAll('input[type=checkbox]').forEach(el => el.checked = false);
+            document.getElementById('f-sort').value = 'events_desc';
+            state.cat = null; state.page = 0;
+            renderCats(); load();
+        };
+
+        let debounceTimer;
+        ['f-q', 'f-ville'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => { state.page = 0; load(); }, 400);
+            });
+        });
+        document.getElementById('f-sort').addEventListener('change', () => load());
+        document.querySelectorAll('input[type=checkbox]').forEach(el => el.addEventListener('change', () => { state.page = 0; load(); }));
+
+        (async () => {
+            await loadMeta();
+            renderCats();
+            load();
+        })();
+    </script>
+</body>
+</html>

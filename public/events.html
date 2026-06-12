@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogue des evenements - CultureRadar</title>
+    <meta name="description" content="Catalogue complet des evenements culturels : theatre, musique, expositions, patrimoine, cinema, danse... Tous les filtres, toutes les villes.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+
+    <section class="section-sm hero-bar">
+        <div class="container">
+            <h1 style="font-size:2rem;">Catalogue des evenements</h1>
+            <p class="muted">Theatre, musique, expositions, patrimoine, cinema... Explorez, filtrez et reservez en un clic.</p>
+            <div class="cat-strip mt-md" id="cat-strip"></div>
+        </div>
+    </section>
+
+    <section class="section" style="padding-top:1.5rem;">
+        <div class="container">
+            <div class="events-layout">
+                <!-- ============== SIDEBAR FILTRES ============== -->
+                <aside class="filters-sidebar" id="filters-sidebar">
+                    <div class="card" style="padding:1.25rem;">
+                        <div class="flex-between mb-md">
+                            <h3 style="margin:0;">🔍 Filtres</h3>
+                            <button class="btn btn-ghost btn-sm" data-action="reset-filters">Reset</button>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Recherche</label>
+                            <input type="text" id="f-q" placeholder="Titre, artiste, mot-cle...">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Ville</label>
+                            <input type="text" id="f-ville" list="villes-list" placeholder="Toutes les villes">
+                            <datalist id="villes-list"></datalist>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Categorie</label>
+                            <div class="filters" id="cat-filters" data-role="cat-filters" style="margin:0;max-height:220px;overflow-y:auto;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Format</label>
+                            <select id="f-format">
+                                <option value="">Tous</option>
+                                <option value="concert">Concert</option>
+                                <option value="spectacle">Spectacle</option>
+                                <option value="exposition">Exposition</option>
+                                <option value="projection">Projection</option>
+                                <option value="visite">Visite</option>
+                                <option value="atelier">Atelier</option>
+                                <option value="conference">Conference</option>
+                                <option value="festival">Festival</option>
+                                <option value="performance">Performance</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Public</label>
+                            <select id="f-public">
+                                <option value="">Tous</option>
+                                <option value="tout-public">Tout public</option>
+                                <option value="famille">Famille</option>
+                                <option value="adulte">Adulte</option>
+                                <option value="ado">Adolescent</option>
+                                <option value="senior">Senior</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tri</label>
+                            <select id="f-sort">
+                                <option value="promoted">Recommandes</option>
+                                <option value="date_asc">Date (proche → loin)</option>
+                                <option value="date_desc">Date (loin → proche)</option>
+                                <option value="prix_asc">Prix croissant</option>
+                                <option value="prix_desc">Prix decroissant</option>
+                                <option value="populaire">Popularite</option>
+                                <option value="note">Note</option>
+                                <option value="recent">Nouveautes</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group"><label>Date debut</label><input type="date" id="f-date-debut"></div>
+                            <div class="form-group"><label>Date fin</label><input type="date" id="f-date-fin"></div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group"><label>Prix min</label><input type="number" id="f-prix-min" min="0" placeholder="0"></div>
+                            <div class="form-group"><label>Prix max</label><input type="number" id="f-prix-max" min="0" placeholder="100"></div>
+                        </div>
+
+                        <div class="form-group" id="geo-filter" style="display:none;">
+                            <label class="distance-label">Distance max <span class="km-pill" id="km-pill">30 km</span></label>
+                            <input type="range" id="f-distance" min="1" max="100" value="30">
+                            <div class="km-ticks"><span>1 km</span><span>50</span><span>100 km</span></div>
+                        </div>
+
+                        <div class="filter-section">
+                            <div class="filter-section-title">Options</div>
+                            <label class="filter-option"><input type="checkbox" id="f-gratuit"> 🎁 Gratuit</label>
+                            <label class="filter-option"><input type="checkbox" id="f-outdoor"> 🌳 En plein air</label>
+                            <label class="filter-option"><input type="checkbox" id="f-places"> 🎟️ Places disponibles</label>
+                            <label class="filter-option"><input type="checkbox" id="f-independent"> ⭐ Lieu independant</label>
+                        </div>
+
+                        <div class="filter-section">
+                            <div class="filter-section-title">Accessibilite</div>
+                            <label class="filter-option"><input type="checkbox" id="f-pmr"> ♿ Acces PMR</label>
+                            <label class="filter-option"><input type="checkbox" id="f-audio"> 🦻 Audio-description</label>
+                            <label class="filter-option"><input type="checkbox" id="f-visuel"> 👁️ Adapte deficients visuels</label>
+                        </div>
+
+                        <button class="btn btn-primary btn-block mt-md" data-action="apply-filters">Appliquer les filtres</button>
+                    </div>
+                </aside>
+
+                <!-- ============== RESULTATS ============== -->
+                <main class="events-main">
+                    <div class="flex-between mb-md" style="flex-wrap:wrap;gap:.75rem;">
+                        <div id="events-count" class="muted"></div>
+                        <div class="flex gap-sm">
+                            <div class="view-switch" role="tablist" aria-label="Mode d affichage">
+                                <button class="view-btn" id="btn-view-grid" data-action="set-view" data-view="grid" aria-label="Vue grille">▦ Grille</button>
+                                <button class="view-btn" id="btn-view-list" data-action="set-view" data-view="list" aria-label="Vue liste">☰ Liste</button>
+                            </div>
+                            <button class="btn btn-ghost btn-sm" data-action="toggle-filters" id="btn-toggle-filters" style="display:none;">🔍 Filtres</button>
+                        </div>
+                    </div>
+
+                    <div id="active-filters" class="mb-md flex gap-sm" style="flex-wrap:wrap;"></div>
+
+                    <div id="events-grid" class="grid grid-3">
+                        <div class="loader-full"><div class="spinner"></div></div>
+                    </div>
+
+                    <div id="pagination" class="mt-lg text-center"></div>
+                </main>
+            </div>
+        </div>
+    </section>
+
+    <div id="cr-footer-placeholder"></div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        const CATEGORIES = ['theatre','musique','exposition','patrimoine','danse','cinema','litterature','festival','atelier','jeune_public'];
+        let state = {
+            cat: null, view: localStorage.getItem('cr_view') || 'grid',
+            page: 0, perPage: 24, total: 0, loc: null, meta: null,
+            lastItems: []
+        };
+
+        async function loadMeta() {
+            try {
+                state.meta = await CR.get('/events/filters/meta');
+                const dl = document.getElementById('villes-list');
+                dl.innerHTML = state.meta.villes.map(v => `<option value="${CR.escape(v.value)}">${v.count} evt</option>`).join('');
+                // Prix range placeholder
+                if (state.meta.prix?.max) {
+                    document.getElementById('f-prix-max').placeholder = `${Math.round(state.meta.prix.max)}`;
+                }
+            } catch (e) { console.warn('meta failed', e); }
+        }
+
+        function renderCats() {
+            const counts = {};
+            (state.meta?.categories || []).forEach(c => counts[c.value] = c.count);
+            // Sidebar (compact) - no inline handlers; delegated below
+            const wrap = document.getElementById('cat-filters');
+            if (wrap) {
+                wrap.innerHTML = `<div class="filter-chip ${!state.cat ? 'active' : ''}" data-cat="">Toutes</div>` +
+                    CATEGORIES.map(c => `<div class="filter-chip ${state.cat===c?'active':''}" data-cat="${c}">${CR.catIcon(c)} ${CR.catLabel(c)}${counts[c]?` <span class="muted small">(${counts[c]})</span>`:''}</div>`).join('');
+            }
+            // Top strip - no inline handlers; delegated below
+            const strip = document.getElementById('cat-strip');
+            if (strip) {
+                strip.innerHTML =
+                    `<button class="cat-strip-tile ${!state.cat ? 'active' : ''}" data-cat=""><span class="cs-emoji">✨</span><span class="cs-name">Toutes</span></button>` +
+                    CATEGORIES.map(c => `<button class="cat-strip-tile ${state.cat===c?'active':''}" data-cat="${c}"><span class="cs-emoji">${CR.catIcon(c)}</span><span class="cs-name">${CR.catLabel(c)}</span>${counts[c]?`<span class="cs-count">${counts[c]}</span>`:''}</button>`).join('');
+            }
+        }
+        function setCat(c) {
+            state.cat = c || null; state.page = 0;
+            renderCats(); loadEvents();
+            // Scroll vers les resultats sur mobile
+            if (window.innerWidth < 900) {
+                document.getElementById('events-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        window.setCat = setCat;
+
+        function getParams() {
+            const params = new URLSearchParams({ limit: state.perPage, offset: state.page * state.perPage, meta: '1' });
+            const q = document.getElementById('f-q').value.trim();
+            const ville = document.getElementById('f-ville').value.trim();
+            const fmt = document.getElementById('f-format').value;
+            const pub = document.getElementById('f-public').value;
+            const sort = document.getElementById('f-sort').value;
+            const dd = document.getElementById('f-date-debut').value;
+            const df = document.getElementById('f-date-fin').value;
+            const pMin = document.getElementById('f-prix-min').value;
+            const pMax = document.getElementById('f-prix-max').value;
+            if (q) params.set('q', q);
+            if (ville) params.set('ville', ville);
+            if (state.cat) params.set('category', state.cat);
+            if (fmt) params.set('format', fmt);
+            if (pub) params.set('public_cible', pub);
+            if (sort) params.set('sort', sort);
+            if (dd) params.set('date_debut', dd);
+            if (df) params.set('date_fin', df);
+            if (pMin) params.set('prix_min', pMin);
+            if (pMax) params.set('prix_max', pMax);
+            if (document.getElementById('f-gratuit').checked) params.set('gratuit', '1');
+            if (document.getElementById('f-outdoor').checked) params.set('outdoor', '1');
+            if (document.getElementById('f-places').checked) params.set('places_disponibles', '1');
+            if (document.getElementById('f-independent').checked) params.set('independent', '1');
+            if (document.getElementById('f-pmr').checked) params.set('pmr', '1');
+            if (document.getElementById('f-audio').checked) params.set('audio', '1');
+            if (document.getElementById('f-visuel').checked) params.set('visuel', '1');
+            if (state.loc) {
+                params.set('lat', state.loc.lat);
+                params.set('lng', state.loc.lng);
+                const dkm = document.getElementById('f-distance').value;
+                params.set('distance_km', dkm);
+            }
+            return params;
+        }
+
+        function renderActive() {
+            const chips = [];
+            if (state.cat) chips.push({ label: `${CR.catIcon(state.cat)} ${CR.catLabel(state.cat)}`, clear: () => setCat(null) });
+            const q = document.getElementById('f-q').value.trim();
+            if (q) chips.push({ label: `"${q}"`, clear: () => { document.getElementById('f-q').value=''; loadEvents(); } });
+            const ville = document.getElementById('f-ville').value.trim();
+            if (ville) chips.push({ label: `📍 ${ville}`, clear: () => { document.getElementById('f-ville').value=''; loadEvents(); } });
+            if (document.getElementById('f-gratuit').checked) chips.push({ label: '🎁 Gratuit', clear: () => { document.getElementById('f-gratuit').checked=false; loadEvents(); } });
+            if (document.getElementById('f-outdoor').checked) chips.push({ label: '🌳 Plein air', clear: () => { document.getElementById('f-outdoor').checked=false; loadEvents(); } });
+            if (document.getElementById('f-independent').checked) chips.push({ label: '⭐ Independant', clear: () => { document.getElementById('f-independent').checked=false; loadEvents(); } });
+            if (document.getElementById('f-pmr').checked) chips.push({ label: '♿ PMR', clear: () => { document.getElementById('f-pmr').checked=false; loadEvents(); } });
+            const host = document.getElementById('active-filters');
+            if (!chips.length) { host.innerHTML = ''; return; }
+            host.innerHTML = chips.map((c, i) => `<span class="active-chip" data-i="${i}">${CR.escape(c.label)} <button>×</button></span>`).join('');
+            host.querySelectorAll('.active-chip').forEach((el, i) => el.querySelector('button').onclick = () => chips[i].clear());
+        }
+
+        function renderItems(items) {
+            const grid = document.getElementById('events-grid');
+            if (!items.length) {
+                grid.innerHTML = '<div class="alert alert-info">Aucun resultat avec ces filtres. <a href="#" onclick="resetFilters();return false;">Reinitialiser</a></div>';
+                return;
+            }
+            if (state.view === 'grid') {
+                grid.className = 'grid grid-3';
+                grid.innerHTML = items.map(e => CR.renderEventCard(e)).join('');
+            } else {
+                grid.className = 'list-mode';
+                grid.innerHTML = items.map(e => renderListItem(e)).join('');
+            }
+            // Apply heart states (envies)
+            CR.applyHearts();
+        }
+
+        async function loadEvents() {
+            const grid = document.getElementById('events-grid');
+            grid.innerHTML = '<div class="loader-full"><div class="spinner"></div></div>';
+            try {
+                const params = getParams();
+                const data = await CR.get('/events?' + params.toString());
+                const items = data.items || data;
+                const total = data.total != null ? data.total : items.length;
+                state.total = total;
+                state.lastItems = items;
+                document.getElementById('events-count').innerHTML = `<strong>${total}</strong> evenement${total>1?'s':''} trouve${total>1?'s':''}${state.cat?` dans ${CR.catLabel(state.cat)}`:''}`;
+                renderItems(items);
+                renderActive();
+                renderPagination();
+                // Sync URL
+                const qs = new URLSearchParams();
+                if (state.cat) qs.set('category', state.cat);
+                const q = document.getElementById('f-q').value.trim(); if (q) qs.set('q', q);
+                const ville = document.getElementById('f-ville').value.trim(); if (ville) qs.set('ville', ville);
+                const url = location.pathname + (qs.toString() ? '?' + qs.toString() : '');
+                history.replaceState({}, '', url);
+            } catch (e) {
+                grid.innerHTML = `<p class="alert alert-danger">${CR.escape(e.message)}</p>`;
+            }
+        }
+
+        function renderListItem(e) {
+            const url = `/event.html?id=${e.id}`;
+            const img = CR.eventImage(e, 600);
+            const isReal = !!e.image_url;
+            const ville = e.ville || '';
+            return `
+            <div class="list-event-row" data-event-id="${e.id}">
+                <a class="list-event-link" href="${url}">
+                    <div class="list-event-img-wrap">
+                        <img class="list-event-img" src="${CR.escape(img)}" alt="${CR.escape(e.titre)}" loading="lazy" onerror="this.onerror=null;this.src='${CR.fallbackImage(e.category, 600)}'">
+                        ${!isReal ? '<span class="img-badge">Visuel generique</span>' : ''}
+                    </div>
+                    <div class="list-event-content">
+                        <div class="event-meta">
+                            <span>${CR.catIcon(e.category)} ${CR.catLabel(e.category)}</span>
+                            ${ville ? `<span>•</span><span>📍 ${CR.escape(ville)}</span>` : ''}
+                            <span>•</span>
+                            <span>📅 ${CR.fmtDate(e.date_debut)}</span>
+                            ${e.duree_minutes ? `<span>•</span><span>⏱️ ${CR.fmtDuration(e.duree_minutes)}</span>` : ''}
+                        </div>
+                        <div class="event-title" style="font-size:1.15rem;">${CR.escape(e.titre)}</div>
+                        ${e.place_nom ? `<p class="muted small">${CR.escape(e.place_nom)}</p>` : ''}
+                        <p class="small" style="color:var(--cr-muted);">${CR.escape((e.description || '').slice(0, 180))}${e.description && e.description.length > 180 ? '...' : ''}</p>
+                        <div class="flex gap-sm mt-sm" style="flex-wrap:wrap;">
+                            <span class="badge badge-primary">${CR.fmtPrix(e)}</span>
+                            ${e.outdoor ? '<span class="badge">Plein air</span>' : ''}
+                            ${e.is_independent ? '<span class="badge badge-cr">⭐ Independant</span>' : ''}
+                            ${e.is_promoted ? '<span class="badge badge-accent">Mis en avant</span>' : ''}
+                            ${e.note_moyenne ? `<span class="badge">★ ${e.note_moyenne} (${e.nb_reviews||0})</span>` : ''}
+                            ${e.accessibility_pmr ? '<span class="badge badge-success">♿</span>' : ''}
+                        </div>
+                    </div>
+                </a>
+                <button class="cr-heart cr-heart-list" data-event-id="${e.id}" title="Ajouter a mes envies" onclick="CR.toggleEnvie(event, ${e.id})">♡</button>
+            </div>`;
+        }
+
+        function renderPagination() {
+            const host = document.getElementById('pagination');
+            const totalPages = Math.ceil(state.total / state.perPage);
+            if (totalPages <= 1) { host.innerHTML = ''; return; }
+            const cur = state.page;
+            let html = '<div class="flex gap-sm" style="justify-content:center;align-items:center;flex-wrap:wrap;">';
+            html += `<button class="btn btn-ghost btn-sm" ${cur === 0 ? 'disabled' : ''} onclick="goPage(${cur-1})">← Precedent</button>`;
+            const start = Math.max(0, cur - 2);
+            const end = Math.min(totalPages, start + 5);
+            for (let i = start; i < end; i++) {
+                html += `<button class="btn ${i === cur ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="goPage(${i})">${i + 1}</button>`;
+            }
+            html += `<button class="btn btn-ghost btn-sm" ${cur >= totalPages - 1 ? 'disabled' : ''} onclick="goPage(${cur+1})">Suivant →</button>`;
+            html += `<span class="small muted">Page ${cur + 1}/${totalPages}</span></div>`;
+            host.innerHTML = html;
+        }
+        window.goPage = function(p) { state.page = p; loadEvents(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+
+        window.setView = function(v) {
+            state.view = v; localStorage.setItem('cr_view', v);
+            document.getElementById('btn-view-grid').classList.toggle('active', v === 'grid');
+            document.getElementById('btn-view-list').classList.toggle('active', v === 'list');
+            // Pas besoin de refetch : on rerend juste les items
+            if (state.lastItems && state.lastItems.length) renderItems(state.lastItems);
+        };
+
+        window.resetFilters = function() {
+            document.querySelectorAll('#filters-sidebar input[type=text],#filters-sidebar input[type=number],#filters-sidebar input[type=date]').forEach(el => el.value = '');
+            document.querySelectorAll('#filters-sidebar input[type=checkbox]').forEach(el => el.checked = false);
+            document.getElementById('f-format').value = '';
+            document.getElementById('f-public').value = '';
+            document.getElementById('f-sort').value = 'promoted';
+            state.cat = null; state.page = 0;
+            renderCats(); loadEvents();
+        };
+
+        window.toggleFilters = function() {
+            document.getElementById('filters-sidebar').classList.toggle('open');
+        };
+
+        // ===== Event delegation for category tiles / chips, view switch, filter buttons =====
+        document.addEventListener('click', (e) => {
+            // Category tile (top strip) or chip (sidebar)
+            const catEl = e.target.closest('[data-cat]');
+            if (catEl && (catEl.classList.contains('cat-strip-tile') || catEl.classList.contains('filter-chip'))) {
+                e.preventDefault();
+                setCat(catEl.dataset.cat || null);
+                return;
+            }
+            // Action buttons (set-view, reset-filters, apply-filters, toggle-filters)
+            const actionEl = e.target.closest('[data-action]');
+            if (!actionEl) return;
+            const action = actionEl.dataset.action;
+            if (action === 'set-view') {
+                e.preventDefault();
+                setView(actionEl.dataset.view);
+            } else if (action === 'reset-filters') {
+                e.preventDefault();
+                resetFilters();
+            } else if (action === 'apply-filters') {
+                e.preventDefault();
+                state.page = 0;
+                loadEvents();
+            } else if (action === 'toggle-filters') {
+                e.preventDefault();
+                toggleFilters();
+            }
+        });
+
+        // Debounce search
+        let debounceTimer;
+        document.addEventListener('DOMContentLoaded', () => {
+            ['f-q','f-ville','f-prix-min','f-prix-max'].forEach(id => {
+                document.getElementById(id).addEventListener('input', () => {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => { state.page = 0; loadEvents(); }, 500);
+                });
+            });
+            ['f-format','f-public','f-sort','f-date-debut','f-date-fin'].forEach(id => {
+                document.getElementById(id).addEventListener('change', () => { state.page = 0; loadEvents(); });
+            });
+            document.querySelectorAll('#filters-sidebar input[type=checkbox]').forEach(el => {
+                el.addEventListener('change', () => { state.page = 0; loadEvents(); });
+            });
+            // Slider distance : MAJ instantanee du label puis fetch debounced
+            const distEl = document.getElementById('f-distance');
+            const kmPill = document.getElementById('km-pill');
+            if (distEl) {
+                distEl.addEventListener('input', () => {
+                    if (kmPill) kmPill.textContent = distEl.value + ' km';
+                });
+                distEl.addEventListener('change', () => { state.page = 0; loadEvents(); });
+            }
+        });
+
+        (async () => {
+            await loadMeta();
+            renderCats();
+            setView(state.view);
+
+            // Parse URL params
+            const qs = new URLSearchParams(location.search);
+            if (qs.get('category')) state.cat = qs.get('category');
+            if (qs.get('q')) document.getElementById('f-q').value = qs.get('q');
+            if (qs.get('ville')) document.getElementById('f-ville').value = qs.get('ville');
+
+            // Try get location for distance filter
+            const u = CR.user();
+            if (u?.latitude) state.loc = { lat: u.latitude, lng: u.longitude };
+            else state.loc = await CR.getLocation();
+            if (state.loc) document.getElementById('geo-filter').style.display = '';
+
+            renderCats();
+            loadEvents();
+
+            // Mobile filter toggle
+            if (window.innerWidth < 900) {
+                document.getElementById('btn-toggle-filters').style.display = '';
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenue - Personnalisez votre experience - CultureRadar</title>
+    <meta name="description" content="Quelques questions pour personnaliser vos recommandations culturelles.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .onb-wrap { max-width: 720px; margin: 0 auto; }
+        .onb-progress { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+        .onb-progress span {
+            flex: 1; height: 6px; border-radius: 3px;
+            background: var(--cr-border); transition: background .25s;
+        }
+        .onb-progress span.done { background: linear-gradient(90deg, var(--cr-primary), var(--cr-accent)); }
+        .onb-step { display: none; animation: fadeIn .35s ease; }
+        .onb-step.active { display: block; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(8px);} to {opacity:1; transform:none;} }
+
+        .onb-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: .75rem;
+            margin: 1.25rem 0;
+        }
+        .onb-tile {
+            background: var(--cr-bg-2); border: 2px solid var(--cr-border);
+            border-radius: var(--cr-radius); padding: 1rem .75rem;
+            cursor: pointer; text-align: center;
+            transition: all .15s; color: var(--cr-text);
+            display: flex; flex-direction: column; align-items: center; gap: .35rem;
+            user-select: none;
+        }
+        .onb-tile:hover { border-color: var(--cr-primary); transform: translateY(-2px); }
+        .onb-tile.selected {
+            background: linear-gradient(135deg, rgba(124,58,237,.12), rgba(236,72,153,.08));
+            border-color: var(--cr-primary);
+            box-shadow: 0 0 0 3px rgba(124,58,237,.15);
+        }
+        .onb-tile .em { font-size: 1.8rem; line-height: 1; }
+        .onb-tile .lbl { font-weight: 600; font-size: .9rem; }
+        .onb-tile.selected .lbl { color: var(--cr-primary); }
+
+        .onb-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .75rem; }
+        .onb-radio {
+            background: var(--cr-bg-2); border: 2px solid var(--cr-border);
+            border-radius: var(--cr-radius); padding: 1rem; cursor: pointer;
+            display: flex; flex-direction: column; gap: .25rem; transition: all .15s;
+        }
+        .onb-radio:hover { border-color: var(--cr-primary); }
+        .onb-radio.selected {
+            background: linear-gradient(135deg, rgba(124,58,237,.10), rgba(236,72,153,.06));
+            border-color: var(--cr-primary);
+        }
+        .onb-radio .ico { font-size: 1.4rem; }
+        .onb-radio .ttl { font-weight: 600; }
+        .onb-radio .sub { font-size: .8rem; color: var(--cr-muted); }
+        .onb-radio.selected .ttl { color: var(--cr-primary); }
+
+        .onb-actions { display: flex; justify-content: space-between; gap: .5rem; margin-top: 1.5rem; }
+        .onb-actions .spacer { flex: 1; }
+        .onb-hint { font-size: .85rem; color: var(--cr-muted); margin-top: .25rem; }
+        .skip-link { color: var(--cr-muted); text-decoration: underline; font-size: .9rem; }
+    </style>
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+
+    <main class="section">
+        <div class="container onb-wrap">
+            <div class="onb-progress" aria-hidden="true">
+                <span class="done" data-bar="1"></span>
+                <span data-bar="2"></span>
+                <span data-bar="3"></span>
+                <span data-bar="4"></span>
+                <span data-bar="5"></span>
+            </div>
+
+            <div class="card" style="padding: 2rem;">
+                <!-- ===== STEP 1 : Welcome + categories ===== -->
+                <section class="onb-step active" data-step="1">
+                    <div class="text-center mb-md">
+                        <div style="font-size:2.5rem;">✨</div>
+                        <h1 style="font-size:1.75rem;margin-top:.5rem;">Bienvenue <span id="hello-name"></span> !</h1>
+                        <p class="muted">Quelques questions rapides pour vous proposer une selection adaptee.</p>
+                    </div>
+                    <h3 style="margin-bottom:.25rem;">Quelles disciplines culturelles vous attirent ?</h3>
+                    <p class="onb-hint">Choisissez tout ce qui vous parle. Vous pourrez modifier plus tard.</p>
+                    <div class="onb-grid" id="cats-grid"></div>
+                    <div class="onb-actions">
+                        <span class="spacer"></span>
+                        <button class="btn btn-primary" data-next="2">Suivant &rarr;</button>
+                    </div>
+                </section>
+
+                <!-- ===== STEP 2 : Frequency ===== -->
+                <section class="onb-step" data-step="2">
+                    <h3 style="margin-bottom:.25rem;">A quelle frequence sortez-vous ?</h3>
+                    <p class="onb-hint">Cela nous aide a doser le nombre de suggestions.</p>
+                    <div class="onb-row mt-md" id="freq-grid">
+                        <label class="onb-radio" data-val="rare"><span class="ico">🌒</span><span class="ttl">Rarement</span><span class="sub">Quelques fois par an</span></label>
+                        <label class="onb-radio" data-val="month"><span class="ico">🌓</span><span class="ttl">Une fois par mois</span><span class="sub">Occasionnel</span></label>
+                        <label class="onb-radio" data-val="week"><span class="ico">🌔</span><span class="ttl">Chaque semaine</span><span class="sub">Regulier</span></label>
+                        <label class="onb-radio" data-val="often"><span class="ico">🌕</span><span class="ttl">Plusieurs fois / semaine</span><span class="sub">Vraie passion</span></label>
+                    </div>
+                    <div class="onb-actions">
+                        <button class="btn btn-ghost" data-prev="1">&larr; Retour</button>
+                        <span class="spacer"></span>
+                        <button class="btn btn-primary" data-next="3">Suivant &rarr;</button>
+                    </div>
+                </section>
+
+                <!-- ===== STEP 3 : Mobility + distance ===== -->
+                <section class="onb-step" data-step="3">
+                    <h3 style="margin-bottom:.25rem;">Comment vous deplacez-vous habituellement ?</h3>
+                    <p class="onb-hint">Pour ne proposer que des evenements accessibles depuis chez vous.</p>
+                    <div class="onb-row mt-md" id="mob-grid">
+                        <label class="onb-radio" data-val="walk"><span class="ico">🚶</span><span class="ttl">A pied</span><span class="sub">Rayon court ~5 km</span></label>
+                        <label class="onb-radio" data-val="bike"><span class="ico">🚲</span><span class="ttl">Velo</span><span class="sub">Rayon ~10 km</span></label>
+                        <label class="onb-radio selected" data-val="transit"><span class="ico">🚇</span><span class="ttl">Transports</span><span class="sub">Rayon ~20 km</span></label>
+                        <label class="onb-radio" data-val="car"><span class="ico">🚗</span><span class="ttl">Voiture</span><span class="sub">Rayon ~50 km</span></label>
+                    </div>
+                    <div class="form-group mt-md">
+                        <label>Distance max acceptable : <strong id="dist-label">20</strong> km</label>
+                        <input type="range" id="dist-range" min="2" max="100" value="20">
+                    </div>
+                    <div class="onb-actions">
+                        <button class="btn btn-ghost" data-prev="2">&larr; Retour</button>
+                        <span class="spacer"></span>
+                        <button class="btn btn-primary" data-next="4">Suivant &rarr;</button>
+                    </div>
+                </section>
+
+                <!-- ===== STEP 4 : Budget + format ===== -->
+                <section class="onb-step" data-step="4">
+                    <h3 style="margin-bottom:.25rem;">Et cote budget ?</h3>
+                    <p class="onb-hint">On filtre les propositions selon votre fourchette.</p>
+                    <div class="onb-row mt-md" id="budget-grid">
+                        <label class="onb-radio" data-val="free"><span class="ico">🎁</span><span class="ttl">Surtout gratuit</span><span class="sub">0 EUR</span></label>
+                        <label class="onb-radio selected" data-val="small"><span class="ico">💶</span><span class="ttl">Petit budget</span><span class="sub">0 - 20 EUR</span></label>
+                        <label class="onb-radio" data-val="medium"><span class="ico">💰</span><span class="ttl">Budget moyen</span><span class="sub">20 - 50 EUR</span></label>
+                        <label class="onb-radio" data-val="open"><span class="ico">✨</span><span class="ttl">Aucune limite</span><span class="sub">Tous prix</span></label>
+                    </div>
+
+                    <h3 style="margin-top:1.5rem;margin-bottom:.25rem;">Avec qui sortez-vous le plus ?</h3>
+                    <div class="onb-row mt-md" id="audience-grid">
+                        <label class="onb-radio selected" data-val="adulte"><span class="ico">👤</span><span class="ttl">Seul / en couple</span><span class="sub">Adulte</span></label>
+                        <label class="onb-radio" data-val="famille"><span class="ico">👨‍👩‍👧</span><span class="ttl">En famille</span><span class="sub">Avec enfants</span></label>
+                        <label class="onb-radio" data-val="ado"><span class="ico">🧑‍🎓</span><span class="ttl">Avec ados</span><span class="sub">12-18 ans</span></label>
+                        <label class="onb-radio" data-val="tout-public"><span class="ico">🌐</span><span class="ttl">Tout public</span><span class="sub">Au cas par cas</span></label>
+                    </div>
+
+                    <div class="onb-actions">
+                        <button class="btn btn-ghost" data-prev="3">&larr; Retour</button>
+                        <span class="spacer"></span>
+                        <button class="btn btn-primary" data-next="5">Suivant &rarr;</button>
+                    </div>
+                </section>
+
+                <!-- ===== STEP 5 : Accessibility (optional) ===== -->
+                <section class="onb-step" data-step="5">
+                    <h3 style="margin-bottom:.25rem;">Avez-vous des besoins specifiques ?</h3>
+                    <p class="onb-hint">Optionnel. Nous mettrons en avant les evenements adaptes.</p>
+                    <div class="filter-section mt-md">
+                        <label class="filter-option"><input type="checkbox" id="a-pmr"> &#9855; Acces PMR (mobilite reduite)</label>
+                        <label class="filter-option"><input type="checkbox" id="a-audio"> 🦻 Audio-description / boucle magnetique</label>
+                        <label class="filter-option"><input type="checkbox" id="a-visuel"> 👁️ Adapte deficience visuelle</label>
+                    </div>
+
+                    <h3 style="margin-top:1.5rem;margin-bottom:.25rem;">Recevoir nos recommandations par email ?</h3>
+                    <div class="filter-section mt-sm">
+                        <label class="filter-option"><input type="checkbox" id="a-news" checked> 📨 Newsletter hebdomadaire (3-4 idees triees par votre profil)</label>
+                    </div>
+
+                    <div class="onb-actions">
+                        <button class="btn btn-ghost" data-prev="4">&larr; Retour</button>
+                        <a class="skip-link" href="/recommendations.html" id="skip-link">Passer cette etape</a>
+                        <span class="spacer"></span>
+                        <button class="btn btn-primary" id="finish-btn">Voir mes recommandations &rarr;</button>
+                    </div>
+                </section>
+            </div>
+
+            <p class="text-center mt-md">
+                <a href="/recommendations.html" class="skip-link">Je remplirai plus tard depuis mon profil</a>
+            </p>
+        </div>
+    </main>
+
+    <div id="cr-footer-placeholder"></div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        // Doit etre connecte pour personnaliser
+        if (!CR.user() || !CR.token()) {
+            location.href = '/login.html?redirect=' + encodeURIComponent('/onboarding.html');
+        }
+        const user = CR.user() || {};
+        document.getElementById('hello-name').textContent = user.prenom || user.nom || '';
+
+        const CATEGORIES = [
+            { v: 'theatre',      icon: '🎭', label: 'Theatre' },
+            { v: 'musique',      icon: '🎵', label: 'Musique' },
+            { v: 'exposition',   icon: '🖼️', label: 'Expositions' },
+            { v: 'patrimoine',   icon: '🏛️', label: 'Patrimoine' },
+            { v: 'danse',        icon: '💃', label: 'Danse' },
+            { v: 'cinema',       icon: '🎬', label: 'Cinema' },
+            { v: 'litterature',  icon: '📚', label: 'Litterature' },
+            { v: 'festival',     icon: '🎉', label: 'Festivals' },
+            { v: 'atelier',      icon: '🎨', label: 'Ateliers' },
+            { v: 'jeune_public', icon: '🧸', label: 'Jeune public' }
+        ];
+
+        const state = {
+            cats: new Set(),
+            freq: null,
+            mobility: 'transit',
+            distance: 20,
+            budget: 'small',
+            audience: 'adulte',
+            pmr: false, audio: false, visuel: false,
+            newsletter: true
+        };
+
+        // ===== Render category tiles =====
+        const catsGrid = document.getElementById('cats-grid');
+        catsGrid.innerHTML = CATEGORIES.map(c => `
+            <div class="onb-tile" data-cat="${c.v}">
+                <span class="em">${c.icon}</span>
+                <span class="lbl">${c.label}</span>
+            </div>
+        `).join('');
+        catsGrid.addEventListener('click', (e) => {
+            const t = e.target.closest('.onb-tile');
+            if (!t) return;
+            const v = t.dataset.cat;
+            if (state.cats.has(v)) { state.cats.delete(v); t.classList.remove('selected'); }
+            else { state.cats.add(v); t.classList.add('selected'); }
+        });
+
+        // ===== Helper: single-select radio behaviour for .onb-radio groups =====
+        function bindRadio(gridId, stateKey) {
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+            grid.addEventListener('click', (e) => {
+                const r = e.target.closest('.onb-radio');
+                if (!r) return;
+                grid.querySelectorAll('.onb-radio').forEach(x => x.classList.remove('selected'));
+                r.classList.add('selected');
+                state[stateKey] = r.dataset.val;
+                // If mobility selected, prefill distance accordingly
+                if (stateKey === 'mobility') {
+                    const map = { walk: 5, bike: 10, transit: 20, car: 50 };
+                    const km = map[r.dataset.val] || 20;
+                    document.getElementById('dist-range').value = km;
+                    document.getElementById('dist-label').textContent = km;
+                    state.distance = km;
+                }
+            });
+        }
+        bindRadio('freq-grid', 'freq');
+        bindRadio('mob-grid', 'mobility');
+        bindRadio('budget-grid', 'budget');
+        bindRadio('audience-grid', 'audience');
+
+        // Distance slider
+        const dr = document.getElementById('dist-range');
+        dr.addEventListener('input', () => {
+            document.getElementById('dist-label').textContent = dr.value;
+            state.distance = Number(dr.value);
+        });
+
+        // ===== Step navigation =====
+        function goStep(n) {
+            document.querySelectorAll('.onb-step').forEach(s => s.classList.toggle('active', Number(s.dataset.step) === n));
+            document.querySelectorAll('.onb-progress span').forEach(b => {
+                b.classList.toggle('done', Number(b.dataset.bar) <= n);
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        document.addEventListener('click', (e) => {
+            const n = e.target.closest('[data-next]');
+            if (n) { goStep(Number(n.dataset.next)); return; }
+            const p = e.target.closest('[data-prev]');
+            if (p) { goStep(Number(p.dataset.prev)); return; }
+        });
+
+        // ===== Final submission =====
+        document.getElementById('a-pmr').addEventListener('change', e => state.pmr = e.target.checked);
+        document.getElementById('a-audio').addEventListener('change', e => state.audio = e.target.checked);
+        document.getElementById('a-visuel').addEventListener('change', e => state.visuel = e.target.checked);
+        document.getElementById('a-news').addEventListener('change', e => state.newsletter = e.target.checked);
+
+        document.getElementById('finish-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('finish-btn');
+            btn.disabled = true;
+            btn.textContent = 'Enregistrement...';
+            try {
+                // 1) Save preferences (categories with weights)
+                const prefs = Array.from(state.cats).map((cat, i) => ({
+                    category: cat,
+                    weight: 5  // equal weight for all picked categories
+                }));
+                if (prefs.length) {
+                    await CR.put('/auth/preferences', { preferences: prefs });
+                }
+
+                // 2) Save profile fields (mobility, distance, accessibility, newsletter)
+                const accessibility_needs = JSON.stringify({
+                    pmr: state.pmr, audio: state.audio, visuel: state.visuel
+                });
+                await CR.put('/auth/me', {
+                    mobility_mode: state.mobility,
+                    max_distance_km: state.distance,
+                    accessibility_needs,
+                    newsletter: state.newsletter
+                });
+
+                // 3) Cache extras locally (frequency, budget, audience) for client-side filtering
+                localStorage.setItem('cr_onboarding', JSON.stringify({
+                    freq: state.freq, budget: state.budget, audience: state.audience,
+                    cats: Array.from(state.cats), completed_at: new Date().toISOString()
+                }));
+
+                // Refresh user payload
+                try {
+                    const me = await CR.get('/auth/me');
+                    if (me) CR.setAuth(CR.token(), me);
+                } catch {}
+
+                CR.toast('Vos preferences sont enregistrees !', 'success');
+                setTimeout(() => location.href = '/recommendations.html?welcome=1', 600);
+            } catch (e) {
+                CR.toast(e.message || 'Erreur lors de l enregistrement', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Voir mes recommandations →';
+            }
+        });
+    </script>
+</body>
+</html>

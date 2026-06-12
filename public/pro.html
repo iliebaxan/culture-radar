@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espace Pro - CultureRadar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+    <main class="section">
+        <div class="container">
+            <h1 style="font-size:2rem;">Espace organisateur</h1>
+            <p class="muted mb-lg">Referencez vos evenements, gerez vos lieux, suivez les performances.</p>
+
+            <div class="flex filters" style="gap:.5rem;">
+                <div class="filter-chip active" onclick="tab('dashboard')" data-tab="dashboard">📊 Tableau de bord</div>
+                <div class="filter-chip" onclick="tab('events')" data-tab="events">🎟️ Mes evenements</div>
+                <div class="filter-chip" onclick="tab('new-event')" data-tab="new-event">➕ Nouvel evenement</div>
+                <div class="filter-chip" onclick="tab('places')" data-tab="places">📍 Mes lieux</div>
+                <div class="filter-chip" onclick="tab('promote')" data-tab="promote">🚀 Promouvoir</div>
+            </div>
+
+            <div id="tab-dashboard" class="tab mt-md"></div>
+            <div id="tab-events" class="tab mt-md hidden"></div>
+            <div id="tab-new-event" class="tab mt-md hidden"></div>
+            <div id="tab-places" class="tab mt-md hidden"></div>
+            <div id="tab-promote" class="tab mt-md hidden"></div>
+        </div>
+    </main>
+    <div id="cr-footer-placeholder"></div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        const user = CR.requireAuth(['pro', 'admin']);
+        if (!user) throw 0;
+
+        function tab(n) {
+            document.querySelectorAll('[data-tab]').forEach(el => el.classList.toggle('active', el.dataset.tab === n));
+            document.querySelectorAll('.tab').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + n).classList.remove('hidden');
+        }
+        window.tab = tab;
+
+        let myEvents = [];
+        let myPlaces = [];
+        let dashChart = null;
+
+        async function loadDashboard() {
+            const total = myEvents.length;
+            const published = myEvents.filter(e => e.status === 'published').length;
+            const promoted = myEvents.filter(e => e.is_promoted).length;
+            const inscrits = myEvents.reduce((s, e) => s + (e.nb_inscrits || 0), 0);
+            const upcoming = myEvents.filter(e => new Date(e.date_debut) >= new Date()).length;
+            const avgNote = (() => {
+                const noted = myEvents.filter(e => e.note_moyenne);
+                return noted.length ? (noted.reduce((s, e) => s + e.note_moyenne, 0) / noted.length).toFixed(1) : '—';
+            })();
+            document.getElementById('tab-dashboard').innerHTML = `
+                <div class="grid dash-grid">
+                    <div class="kpi-card"><div class="label">Mes evenements</div><div class="value">${total}</div><div class="small muted">${upcoming} a venir</div></div>
+                    <div class="kpi-card"><div class="label">Publies</div><div class="value">${published}</div></div>
+                    <div class="kpi-card"><div class="label">Mis en avant</div><div class="value">${promoted}</div></div>
+                    <div class="kpi-card"><div class="label">Inscrits total</div><div class="value">${inscrits}</div></div>
+                    <div class="kpi-card"><div class="label">Note moyenne</div><div class="value">${avgNote}${avgNote !== '—' ? '★' : ''}</div></div>
+                    <div class="kpi-card"><div class="label">Mes lieux</div><div class="value">${myPlaces.length}</div></div>
+                </div>
+                <div class="grid grid-2 mt-lg" style="grid-template-columns:2fr 1fr;">
+                    <div class="card" style="padding:1.25rem;">
+                        <h3>Inscrits par evenement</h3>
+                        <canvas id="chart-pro" height="180"></canvas>
+                    </div>
+                    <div class="card" style="padding:1.25rem;">
+                        <h3>Bienvenue ${CR.escape(user.prenom || user.nom)} !</h3>
+                        <p class="muted">Publiez gratuitement vos evenements, gerez votre lieu, achetez de la visibilite.</p>
+                        <div class="flex gap-sm mt-md" style="flex-direction:column;">
+                            <button class="btn btn-primary" onclick="tab('new-event')">Publier un evenement</button>
+                            <button class="btn btn-outline" onclick="tab('promote')">Booster un evenement</button>
+                        </div>
+                    </div>
+                </div>`;
+            // Chart
+            if (dashChart) dashChart.destroy();
+            const topEvents = [...myEvents].sort((a, b) => (b.nb_inscrits || 0) - (a.nb_inscrits || 0)).slice(0, 8);
+            if (topEvents.length) {
+                dashChart = new Chart(document.getElementById('chart-pro'), {
+                    type: 'bar',
+                    data: { labels: topEvents.map(e => e.titre.slice(0, 30)), datasets: [{ data: topEvents.map(e => e.nb_inscrits || 0), backgroundColor: '#5b21b6' }] },
+                    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+                });
+            }
+        }
+
+        async function loadEvents() {
+            myEvents = await CR.get('/events/mine/organized');
+            document.getElementById('tab-events').innerHTML = myEvents.length ? `
+                <div class="table-wrap"><table class="tbl">
+                    <thead><tr><th>Titre</th><th>Categorie</th><th>Date</th><th>Lieu</th><th>Statut</th><th>Prix</th><th>Inscrits</th><th>Note</th><th>Actions</th></tr></thead>
+                    <tbody>${myEvents.map(e => `<tr>
+                        <td><a href="/event.html?id=${e.id}">${CR.escape(e.titre)}</a>${e.is_promoted ? ' <span class="badge badge-accent">boost</span>' : ''}</td>
+                        <td>${CR.catIcon(e.category)} ${CR.catLabel(e.category)}</td>
+                        <td class="small">${CR.fmtDate(e.date_debut)}</td>
+                        <td>${CR.escape(e.place_nom || '—')}</td>
+                        <td><span class="badge ${e.status==='published'?'badge-success':e.status==='cancelled'?'badge-warn':''}">${e.status}</span></td>
+                        <td>${CR.fmtPrix(e)}</td>
+                        <td>${e.nb_inscrits || 0}</td>
+                        <td>${e.note_moyenne ? `★ ${e.note_moyenne}` : '—'}</td>
+                        <td class="flex gap-sm">
+                            <a href="/event.html?id=${e.id}" class="btn btn-ghost btn-sm" title="Voir">👁️</a>
+                            <button class="btn btn-ghost btn-sm" onclick="editEvent(${e.id})" title="Editer">✏️</button>
+                            <button class="btn btn-ghost btn-sm" onclick="cancelEvent(${e.id})" title="Annuler">🚫</button>
+                            <button class="btn btn-ghost btn-sm" onclick="deleteEvent(${e.id})" title="Supprimer">🗑️</button>
+                        </td>
+                    </tr>`).join('')}</tbody>
+                </table></div>
+            ` : '<p class="muted">Vous n avez pas encore d evenement. <a href="#" onclick="tab(\'new-event\');return false;">En publier un</a>.</p>';
+        }
+
+        window.cancelEvent = async (id) => {
+            if (!confirm('Annuler cet evenement ?')) return;
+            try { await CR.put('/events/' + id, { status: 'cancelled' }); CR.toast('Evenement annule', 'success'); loadEvents(); }
+            catch (e) { CR.toast(e.message, 'error'); }
+        };
+        window.deleteEvent = async (id) => {
+            if (!confirm('Supprimer definitivement cet evenement ?')) return;
+            try { await CR.del('/events/' + id); CR.toast('Supprime', 'success'); loadEvents(); }
+            catch (e) { CR.toast(e.message, 'error'); }
+        };
+        window.editEvent = async (id) => {
+            const ev = myEvents.find(e => e.id === id);
+            if (!ev) return;
+            const toLocal = (iso) => iso ? new Date(iso).toISOString().slice(0, 16) : '';
+            const modal = document.createElement('div');
+            modal.className = 'cr-modal';
+            modal.innerHTML = `
+                <div class="cr-modal-content">
+                    <div class="flex-between mb-md"><h3 style="margin:0;">Editer l evenement</h3><button class="btn btn-ghost" onclick="this.closest('.cr-modal').remove()">×</button></div>
+                    <div class="form-group"><label>Titre</label><input id="ed-titre" value="${CR.escape(ev.titre)}"></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Categorie</label>
+                            <select id="ed-cat">
+                                ${['theatre','musique','exposition','patrimoine','danse','cinema','litterature','festival','atelier','jeune_public'].map(c => `<option value="${c}" ${ev.category===c?'selected':''}>${CR.catLabel(c)}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Statut</label>
+                            <select id="ed-status">
+                                <option value="draft" ${ev.status==='draft'?'selected':''}>Brouillon</option>
+                                <option value="published" ${ev.status==='published'?'selected':''}>Publie</option>
+                                <option value="cancelled" ${ev.status==='cancelled'?'selected':''}>Annule</option>
+                                <option value="finished" ${ev.status==='finished'?'selected':''}>Termine</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Date debut</label><input type="datetime-local" id="ed-debut" value="${toLocal(ev.date_debut)}"></div>
+                        <div class="form-group"><label>Date fin</label><input type="datetime-local" id="ed-fin" value="${toLocal(ev.date_fin)}"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Prix min</label><input type="number" id="ed-pmin" value="${ev.prix_min || 0}" step="0.01"></div>
+                        <div class="form-group"><label>Prix max</label><input type="number" id="ed-pmax" value="${ev.prix_max || ''}" step="0.01"></div>
+                        <div class="form-group"><label>Places</label><input type="number" id="ed-places" value="${ev.places_disponibles ?? ''}"></div>
+                    </div>
+                    <div class="form-group"><label>Description</label><textarea id="ed-desc">${CR.escape(ev.description || '')}</textarea></div>
+                    <div class="form-group"><label>Image URL</label><input id="ed-img" value="${CR.escape(ev.image_url || '')}"></div>
+                    <div class="flex gap-md" style="flex-wrap:wrap;">
+                        <label><input type="checkbox" id="ed-gratuit" ${ev.gratuit?'checked':''}> Gratuit</label>
+                        <label><input type="checkbox" id="ed-outdoor" ${ev.outdoor?'checked':''}> En plein air</label>
+                    </div>
+                    <div class="flex gap-sm mt-md">
+                        <button class="btn btn-primary" onclick="saveEdit(${id})">Enregistrer</button>
+                        <button class="btn btn-ghost" onclick="this.closest('.cr-modal').remove()">Annuler</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        };
+        window.saveEdit = async (id) => {
+            try {
+                await CR.put('/events/' + id, {
+                    titre: document.getElementById('ed-titre').value,
+                    category: document.getElementById('ed-cat').value,
+                    status: document.getElementById('ed-status').value,
+                    date_debut: document.getElementById('ed-debut').value ? new Date(document.getElementById('ed-debut').value).toISOString() : null,
+                    date_fin: document.getElementById('ed-fin').value ? new Date(document.getElementById('ed-fin').value).toISOString() : null,
+                    prix_min: Number(document.getElementById('ed-pmin').value || 0),
+                    prix_max: document.getElementById('ed-pmax').value ? Number(document.getElementById('ed-pmax').value) : null,
+                    places_disponibles: document.getElementById('ed-places').value ? Number(document.getElementById('ed-places').value) : null,
+                    description: document.getElementById('ed-desc').value,
+                    image_url: document.getElementById('ed-img').value,
+                    gratuit: document.getElementById('ed-gratuit').checked,
+                    outdoor: document.getElementById('ed-outdoor').checked
+                });
+                CR.toast('Evenement mis a jour', 'success');
+                document.querySelector('.cr-modal')?.remove();
+                loadEvents();
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        async function loadPlaces() {
+            myPlaces = await CR.get('/places/mine/owned');
+            document.getElementById('tab-places').innerHTML = `
+                ${myPlaces.length ? `<div class="grid grid-2">
+                    ${myPlaces.map(p => `
+                        <div class="card" style="padding:1.25rem;">
+                            <h3>${CR.escape(p.nom)}</h3>
+                            <p class="muted small">${CR.catLabel(p.category)} • ${CR.escape(p.ville)}</p>
+                            <p class="small">${CR.escape(p.adresse || '')}</p>
+                            <p class="small"><strong>${p.nb_events || 0}</strong> evenements</p>
+                            <div class="flex gap-sm mt-sm" style="flex-wrap:wrap;">
+                                <a href="/place.html?id=${p.id}" class="btn btn-outline btn-sm">👁️ Voir</a>
+                                <button class="btn btn-ghost btn-sm" onclick="editPlace(${p.id})">✏️ Editer</button>
+                                <button class="btn btn-ghost btn-sm" onclick="deletePlace(${p.id})" title="Supprimer">🗑️</button>
+                            </div>
+                        </div>`).join('')}
+                </div>` : '<p class="muted">Aucun lieu gere. Ajoutez votre premier lieu ci-dessous.</p>'}
+                <div class="card mt-md" style="padding:1.5rem;">
+                    <h3>Ajouter un lieu</h3>
+                    <div class="form-row">
+                        <div class="form-group"><label>Nom *</label><input id="pl-nom" required></div>
+                        <div class="form-group"><label>Categorie *</label>
+                            <select id="pl-cat">
+                                <option value="musee">Musee</option>
+                                <option value="theatre">Theatre</option>
+                                <option value="salle_concert">Salle de concert</option>
+                                <option value="galerie">Galerie</option>
+                                <option value="cinema">Cinema</option>
+                                <option value="bibliotheque">Bibliotheque</option>
+                                <option value="mediatheque">Mediatheque</option>
+                                <option value="lieu_patrimoine">Lieu de patrimoine</option>
+                                <option value="espace_independant">Espace independant</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>Description</label><textarea id="pl-desc" placeholder="Presentation du lieu..."></textarea></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Adresse</label><input id="pl-adr"></div>
+                        <div class="form-group"><label>Ville *</label><input id="pl-ville" required></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Code postal</label><input id="pl-cp"></div>
+                        <div class="form-group"><label>Site web</label><input id="pl-web" placeholder="https://..."></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Telephone</label><input id="pl-tel"></div>
+                        <div class="form-group"><label>Email</label><input type="email" id="pl-email"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Latitude *</label><input id="pl-lat" type="number" step="0.0001" placeholder="48.8566"></div>
+                        <div class="form-group"><label>Longitude *</label><input id="pl-lng" type="number" step="0.0001" placeholder="2.3522"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Capacite</label><input type="number" id="pl-cap"></div>
+                        <div class="form-group"><label>URL image</label><input id="pl-img" placeholder="https://..."></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Tarifs d entree</label><input id="pl-tarifs" placeholder="Gratuit / 8 EUR / etc."></div>
+                        <div class="form-group"><label>Annee de creation</label><input type="number" id="pl-annee"></div>
+                    </div>
+                    <label style="display:block;margin-top:.5rem;"><input type="checkbox" id="pl-indep"> Lieu independant (badge CultureRadar)</label>
+                    <button class="btn btn-primary mt-md" onclick="createPlace()">Publier le lieu</button>
+                </div>`;
+        }
+        window.createPlace = async () => {
+            try {
+                await CR.post('/places', {
+                    nom: pl_nom.value, category: pl_cat.value, description: pl_desc.value,
+                    adresse: pl_adr.value, ville: pl_ville.value, code_postal: pl_cp.value,
+                    latitude: Number(pl_lat.value), longitude: Number(pl_lng.value),
+                    site_web: pl_web.value, telephone: pl_tel.value, email: pl_email.value,
+                    capacite: pl_cap.value ? Number(pl_cap.value) : null,
+                    annee_creation: pl_annee.value ? Number(pl_annee.value) : null,
+                    tarifs_entree: pl_tarifs.value,
+                    image_url: pl_img.value, is_independent: pl_indep.checked
+                });
+                CR.toast('Lieu ajoute', 'success');
+                await loadPlaces();
+                renderNewEventForm();
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        window.editPlace = async (id) => {
+            const p = myPlaces.find(x => x.id === id);
+            if (!p) return;
+            const modal = document.createElement('div');
+            modal.className = 'cr-modal';
+            modal.innerHTML = `
+                <div class="cr-modal-content">
+                    <div class="flex-between mb-md"><h3 style="margin:0;">Editer le lieu</h3><button class="btn btn-ghost" onclick="this.closest('.cr-modal').remove()">×</button></div>
+                    <div class="form-group"><label>Nom</label><input id="ep-nom" value="${CR.escape(p.nom)}"></div>
+                    <div class="form-group"><label>Description</label><textarea id="ep-desc">${CR.escape(p.description || '')}</textarea></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Adresse</label><input id="ep-adr" value="${CR.escape(p.adresse || '')}"></div>
+                        <div class="form-group"><label>CP</label><input id="ep-cp" value="${CR.escape(p.code_postal || '')}"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Tel</label><input id="ep-tel" value="${CR.escape(p.telephone || '')}"></div>
+                        <div class="form-group"><label>Email</label><input id="ep-email" value="${CR.escape(p.email || '')}"></div>
+                    </div>
+                    <div class="form-group"><label>Site web</label><input id="ep-web" value="${CR.escape(p.site_web || '')}"></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Capacite</label><input type="number" id="ep-cap" value="${p.capacite || ''}"></div>
+                        <div class="form-group"><label>Tarifs</label><input id="ep-tarifs" value="${CR.escape(p.tarifs_entree || '')}"></div>
+                    </div>
+                    <div class="form-group"><label>Image URL</label><input id="ep-img" value="${CR.escape(p.image_url || '')}"></div>
+                    <div class="flex gap-sm mt-md">
+                        <button class="btn btn-primary" onclick="saveEditPlace(${id})">Enregistrer</button>
+                        <button class="btn btn-ghost" onclick="this.closest('.cr-modal').remove()">Annuler</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        };
+        window.saveEditPlace = async (id) => {
+            try {
+                await CR.put('/places/' + id, {
+                    nom: document.getElementById('ep-nom').value,
+                    description: document.getElementById('ep-desc').value,
+                    adresse: document.getElementById('ep-adr').value,
+                    code_postal: document.getElementById('ep-cp').value,
+                    telephone: document.getElementById('ep-tel').value,
+                    email: document.getElementById('ep-email').value,
+                    site_web: document.getElementById('ep-web').value,
+                    capacite: document.getElementById('ep-cap').value ? Number(document.getElementById('ep-cap').value) : null,
+                    tarifs_entree: document.getElementById('ep-tarifs').value,
+                    image_url: document.getElementById('ep-img').value
+                });
+                CR.toast('Lieu mis a jour', 'success');
+                document.querySelector('.cr-modal')?.remove();
+                loadPlaces();
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        function renderNewEventForm() {
+            document.getElementById('tab-new-event').innerHTML = `
+                <div class="card" style="padding:1.5rem;max-width:900px;">
+                    <h3>Publier un nouvel evenement</h3>
+                    <p class="muted small mb-md">Plus votre fiche est complete, plus vous aurez de reservations.</p>
+
+                    <div class="form-group"><label>Titre *</label><input id="ev-titre" required placeholder="Nom de votre evenement"></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Categorie *</label>
+                            <select id="ev-cat">
+                                <option value="theatre">Theatre</option><option value="musique">Musique</option>
+                                <option value="exposition">Exposition</option><option value="patrimoine">Patrimoine</option>
+                                <option value="danse">Danse</option><option value="cinema">Cinema</option>
+                                <option value="litterature">Litterature</option><option value="festival">Festival</option>
+                                <option value="atelier">Atelier</option><option value="jeune_public">Jeune public</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Format</label>
+                            <select id="ev-format">
+                                <option value="">—</option>
+                                <option value="concert">Concert</option><option value="spectacle">Spectacle</option>
+                                <option value="exposition">Exposition</option><option value="projection">Projection</option>
+                                <option value="visite">Visite</option><option value="atelier">Atelier</option>
+                                <option value="conference">Conference</option><option value="performance">Performance</option>
+                                <option value="festival">Festival</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>Lieu</label>
+                        <select id="ev-place">
+                            <option value="">— Aucun lieu specifique —</option>
+                            ${myPlaces.map(p => `<option value="${p.id}">${CR.escape(p.nom)} (${CR.escape(p.ville)})</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Date debut *</label><input type="datetime-local" id="ev-debut" required></div>
+                        <div class="form-group"><label>Date fin</label><input type="datetime-local" id="ev-fin"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Duree (min)</label><input type="number" id="ev-duree" placeholder="90"></div>
+                        <div class="form-group"><label>Langue</label>
+                            <select id="ev-langue">
+                                <option value="fr">Francais</option><option value="en">Anglais</option>
+                                <option value="es">Espagnol</option><option value="de">Allemand</option>
+                                <option value="it">Italien</option><option value="mul">Multilingue</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Prix min (EUR)</label><input type="number" id="ev-pmin" value="0" step="0.01"></div>
+                        <div class="form-group"><label>Prix max (EUR)</label><input type="number" id="ev-pmax" step="0.01"></div>
+                        <div class="form-group"><label>Tarif reduit</label><input type="number" id="ev-predu" step="0.01"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Places disponibles</label><input type="number" id="ev-places"></div>
+                        <div class="form-group"><label>Places max</label><input type="number" id="ev-places-max"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Age minimum</label><input type="number" id="ev-age-min"></div>
+                        <div class="form-group"><label>Age maximum</label><input type="number" id="ev-age-max"></div>
+                        <div class="form-group"><label>Public</label>
+                            <select id="ev-public">
+                                <option value="">—</option>
+                                <option value="tout-public">Tout public</option>
+                                <option value="famille">Famille</option>
+                                <option value="adulte">Adulte</option>
+                                <option value="ado">Adolescent</option>
+                                <option value="senior">Senior</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>Description courte</label><textarea id="ev-desc" placeholder="1-2 phrases pour presenter..."></textarea></div>
+                    <div class="form-group"><label>Description detaillee (optionnel)</label><textarea id="ev-desc-long" placeholder="Le programme complet, les artistes, le contexte..." style="min-height:140px;"></textarea></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>URL image principale</label><input id="ev-img" placeholder="https://..."></div>
+                        <div class="form-group"><label>URL billetterie externe</label><input id="ev-bill" placeholder="https://..."></div>
+                    </div>
+                    <div class="form-group"><label>Infos pratiques</label><textarea id="ev-infos" placeholder="Parking, acces, vestiaire..."></textarea></div>
+                    <div class="form-group"><label>Tags (separes par des virgules)</label><input id="ev-tags" placeholder="jazz,soiree,decouverte"></div>
+                    <div class="flex gap-md mt-sm" style="flex-wrap:wrap;">
+                        <label><input type="checkbox" id="ev-gratuit"> 🎁 Evenement gratuit</label>
+                        <label><input type="checkbox" id="ev-outdoor"> 🌳 En plein air</label>
+                    </div>
+                    <div class="filter-section">
+                        <div class="filter-section-title">Accessibilite</div>
+                        <label class="filter-option"><input type="checkbox" id="ev-pmr"> ♿ Acces PMR</label>
+                        <label class="filter-option"><input type="checkbox" id="ev-audio"> 🦻 Audio-description</label>
+                        <label class="filter-option"><input type="checkbox" id="ev-visuel"> 👁️ Adapte deficients visuels</label>
+                    </div>
+                    <button class="btn btn-primary mt-md" onclick="createEvent()">Publier l evenement</button>
+                </div>`;
+        }
+        window.createEvent = async () => {
+            try {
+                await CR.post('/events', {
+                    titre: ev_titre.value, category: ev_cat.value,
+                    format: ev_format.value || null,
+                    place_id: ev_place.value ? Number(ev_place.value) : null,
+                    date_debut: ev_debut.value, date_fin: ev_fin.value || null,
+                    duree_minutes: ev_duree.value ? Number(ev_duree.value) : null,
+                    langue: ev_langue.value,
+                    prix_min: Number(ev_pmin.value || 0),
+                    prix_max: ev_pmax.value ? Number(ev_pmax.value) : null,
+                    tarif_reduit: ev_predu.value ? Number(ev_predu.value) : null,
+                    gratuit: ev_gratuit.checked, outdoor: ev_outdoor.checked,
+                    places_disponibles: ev_places.value ? Number(ev_places.value) : null,
+                    places_max: document.getElementById('ev-places-max').value ? Number(document.getElementById('ev-places-max').value) : null,
+                    age_min: document.getElementById('ev-age-min').value ? Number(document.getElementById('ev-age-min').value) : null,
+                    age_max: document.getElementById('ev-age-max').value ? Number(document.getElementById('ev-age-max').value) : null,
+                    public_cible: ev_public.value || null,
+                    description: ev_desc.value,
+                    description_longue: document.getElementById('ev-desc-long').value || null,
+                    image_url: ev_img.value || null,
+                    url_billetterie: ev_bill.value || null,
+                    infos_pratiques: ev_infos.value,
+                    tags: ev_tags.value,
+                    accessibility_pmr: ev_pmr.checked,
+                    accessibility_audio: ev_audio.checked,
+                    accessibility_visuel: ev_visuel.checked
+                });
+                CR.toast('Evenement publie !', 'success');
+                loadEvents(); tab('events');
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        async function renderPromote() {
+            const packs = await CR.get('/promotions/packs');
+            const mine = await CR.get('/promotions/mine');
+            document.getElementById('tab-promote').innerHTML = `
+                <div class="card" style="padding:1.5rem;">
+                    <h3>Booster un evenement</h3>
+                    <p class="muted">Donnez plus de visibilite a un de vos evenements dans les recommandations prioritaires.</p>
+                    <div class="form-group"><label>Evenement a booster</label>
+                        <select id="pm-event">
+                            ${myEvents.filter(e => e.status === 'published').length ? myEvents.filter(e => e.status === 'published').map(e => `<option value="${e.id}">${CR.escape(e.titre)} (${CR.fmtDateShort(e.date_debut)})</option>`).join('') : '<option value="">Aucun evenement publie</option>'}
+                        </select>
+                    </div>
+                    <div class="grid grid-3">
+                        ${Object.entries(packs).map(([k, p]) => `
+                            <div class="card" style="padding:1.25rem;">
+                                <h3>${p.label}</h3>
+                                <div style="font-size:1.75rem;font-weight:800;color:var(--cr-primary);">${p.prix} EUR</div>
+                                <p class="muted small">${p.duree_jours} jours de mise en avant</p>
+                                <button class="btn btn-primary mt-sm" onclick="buyPack('${k}')">Acheter</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <h3 class="mt-lg">Historique de vos promotions</h3>
+                <div class="table-wrap mt-sm"><table class="tbl">
+                    <thead><tr><th>Evenement</th><th>Pack</th><th>Montant</th><th>Debut</th><th>Fin</th><th>Statut</th></tr></thead>
+                    <tbody>${mine.length ? mine.map(m => `<tr>
+                        <td>${CR.escape(m.titre)}</td><td>${m.pack}</td><td>${m.montant} EUR</td>
+                        <td>${CR.fmtDateShort(m.date_debut)}</td><td>${CR.fmtDateShort(m.date_fin)}</td>
+                        <td><span class="badge badge-success">${m.payment_status}</span></td>
+                    </tr>`).join('') : '<tr><td colspan="6" class="muted">Aucune promotion.</td></tr>'}</tbody>
+                </table></div>`;
+        }
+        window.buyPack = async (pack) => {
+            const event_id = Number(document.getElementById('pm-event').value);
+            if (!event_id) return CR.toast('Selectionnez un evenement', 'error');
+            // Mode demonstration : aucun paiement reel n est traite pour le moment
+            if (!confirm('Le paiement en ligne sera bientot disponible. Activer une promotion de demonstration pour cet evenement ?')) return;
+            try {
+                const r = await CR.post('/promotions', { event_id, pack });
+                CR.toast(`Promotion "${pack}" activee (mode demo) - ${r.montant} EUR simules`, 'success', 4000);
+                renderPromote();
+                loadEvents();
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        window.deletePlace = async (id) => {
+            if (!confirm('Supprimer ce lieu ? Les evenements associes ne seront pas supprimes mais perdront leur lieu.')) return;
+            try {
+                await CR.del('/places/' + id);
+                CR.toast('Lieu supprime', 'success');
+                loadPlaces();
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        (async () => {
+            await Promise.all([loadEvents(), loadPlaces()]);
+            loadDashboard();
+            renderNewEventForm();
+            renderPromote();
+        })();
+    </script>
+</body>
+</html>

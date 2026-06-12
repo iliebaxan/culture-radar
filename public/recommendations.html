@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma boussole culturelle - CultureRadar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+
+    <section class="section-sm hero-bar">
+        <div class="container">
+            <h1 style="font-size:2.2rem;">🧭 Ma boussole culturelle</h1>
+            <p class="muted">Vos recommandations, calculees en fonction de vos preferences, votre geolocalisation et la meteo du moment.</p>
+            <div id="context-bar" class="mt-md flex gap-sm" style="flex-wrap:wrap;"></div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div class="flex-between mb-md" style="flex-wrap:wrap;gap:.75rem;">
+                <h2 style="margin:0;">Pour vous aujourd hui</h2>
+                <div class="flex gap-sm">
+                    <button class="btn btn-ghost btn-sm" onclick="refresh()">🔄 Actualiser</button>
+                    <a class="btn btn-outline btn-sm" href="/profile.html#preferences">⚙️ Mes preferences</a>
+                </div>
+            </div>
+            <div id="recommendations"><div class="loader-full"><div class="spinner"></div></div></div>
+        </div>
+    </section>
+
+    <div id="cr-footer-placeholder"></div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        async function refresh() {
+            document.getElementById('recommendations').innerHTML = '<div class="loader-full"><div class="spinner"></div></div>';
+            load();
+        }
+        window.refresh = refresh;
+
+        async function load() {
+            const u = CR.user();
+            let loc = null;
+            if (u && u.latitude) loc = { lat: u.latitude, lng: u.longitude };
+            else loc = await CR.getLocation();
+
+            const params = new URLSearchParams({ limit: 24 });
+            if (loc) { params.set('lat', loc.lat); params.set('lng', loc.lng); }
+            if (!u) params.set('categories', 'musique,theatre,exposition');
+
+            const ctxBar = document.getElementById('context-bar');
+            ctxBar.innerHTML = '';
+            if (u) ctxBar.innerHTML += `<span class="badge badge-primary">👤 ${CR.escape(u.prenom || u.nom)}</span>`;
+            if (loc) ctxBar.innerHTML += `<span class="badge">📍 Votre position</span>`;
+            if (!u) ctxBar.innerHTML += `<span class="badge badge-warn">Mode invite - <a href="/login.html">Connectez-vous</a> pour des recommandations personnalisees</span>`;
+
+            const target = document.getElementById('recommendations');
+            try {
+                const data = await CR.get('/recommendations?' + params.toString());
+                if (data.meteo) ctxBar.innerHTML += `<span class="badge">🌤️ ${data.meteo.code_label}, ${Math.round(data.meteo.temperature)}°C</span>`;
+
+                const recos = data.recommendations || [];
+                if (!recos.length) {
+                    target.innerHTML = `
+                        <div class="card" style="padding:2rem;text-align:center;max-width:640px;margin:0 auto;">
+                            <div style="font-size:3rem;">🧭</div>
+                            <h3>Pas encore de recommandations</h3>
+                            <p class="muted">Indiquez vos preferences culturelles pour que nous trouvions des evenements qui vous ressemblent.</p>
+                            <div class="flex gap-sm mt-md" style="justify-content:center;flex-wrap:wrap;">
+                                ${u ? '<a href="/profile.html#preferences" class="btn btn-primary">Definir mes preferences</a>' : '<a href="/register.html" class="btn btn-primary">Creer mon compte gratuit</a>'}
+                                <a href="/events.html" class="btn btn-outline">Parcourir le catalogue</a>
+                            </div>
+                        </div>`;
+                    return;
+                }
+
+                // Groupes de reco par "raison"
+                const top = recos.slice(0, 6);
+                const rest = recos.slice(6);
+                let html = `
+                    <h3 class="mt-md">✨ Vos coups de coeur probables</h3>
+                    <div class="grid grid-3 mt-sm">${top.map(r => CR.renderEventCard(r.event, { score: r.score, scoreDetails: r.details })).join('')}</div>
+                `;
+                if (rest.length) {
+                    html += `
+                        <h3 class="mt-lg">🗺️ A decouvrir aussi</h3>
+                        <div class="grid grid-3 mt-sm">${rest.map(r => CR.renderEventCard(r.event, { score: r.score, scoreDetails: r.details })).join('')}</div>
+                    `;
+                }
+                target.innerHTML = html;
+                CR.applyHearts();
+            } catch (e) {
+                target.innerHTML = `<p class="alert alert-danger">${CR.escape(e.message)}</p>`;
+            }
+        }
+        load();
+    </script>
+</body>
+</html>

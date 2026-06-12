@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact - CultureRadar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+
+    <main class="section">
+        <div class="container" style="max-width: 880px;">
+            <h1>Contact</h1>
+            <p class="muted">Une question ? Une proposition de partenariat ? Nous sommes a votre ecoute.</p>
+
+            <div class="grid grid-2 mt-lg">
+                <div class="feature-card">
+                    <h3>Support utilisateur</h3>
+                    <p class="muted">Pour toute question sur votre compte ou les reservations.</p>
+                    <p class="mt-sm"><a href="mailto:support@culture-radar.fr">support@culture-radar.fr</a></p>
+                </div>
+                <div class="feature-card">
+                    <h3>Lieux & organisateurs</h3>
+                    <p class="muted">Pour referencer votre lieu ou ajouter vos evenements.</p>
+                    <p class="mt-sm"><a href="mailto:pro@culture-radar.fr">pro@culture-radar.fr</a></p>
+                </div>
+                <div class="feature-card">
+                    <h3>Presse & medias</h3>
+                    <p class="muted">Demandes d interview, dossier de presse.</p>
+                    <p class="mt-sm"><a href="mailto:presse@culture-radar.fr">presse@culture-radar.fr</a></p>
+                </div>
+                <div class="feature-card">
+                    <h3>Collectivites & partenariats</h3>
+                    <p class="muted">Politique culturelle territoriale, QR codes evenementiels.</p>
+                    <p class="mt-sm"><a href="mailto:partenariats@culture-radar.fr">partenariats@culture-radar.fr</a></p>
+                </div>
+            </div>
+
+            <div class="card mt-lg" style="padding:2rem;">
+                <h2>Ecrivez-nous</h2>
+                <p class="muted small mb-md">Nous repondons sous 48 heures en jours ouvres.</p>
+                <form id="contact-form">
+                    <div class="form-row">
+                        <div class="form-group"><label>Nom *</label><input id="c-nom" required></div>
+                        <div class="form-group"><label>Email *</label><input type="email" id="c-email" required></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Categorie</label>
+                            <select id="c-cat">
+                                <option value="general">Question generale</option>
+                                <option value="support">Support technique</option>
+                                <option value="pro">Referencement (lieu / organisateur)</option>
+                                <option value="partenariats">Partenariats / collectivites</option>
+                                <option value="presse">Presse / medias</option>
+                                <option value="bug">Signaler un bug</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Sujet *</label><input id="c-sujet" required minlength="3"></div>
+                    </div>
+                    <div class="form-group"><label>Message *</label><textarea id="c-msg" required minlength="10" style="min-height:160px;" placeholder="Decrivez votre demande..."></textarea></div>
+                    <div class="form-group"><label><input type="checkbox" required> J accepte le traitement de mes donnees (RGPD).</label></div>
+                    <button type="submit" class="btn btn-primary">Envoyer</button>
+                </form>
+                <div id="contact-result" class="mt-md"></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="cr-footer-placeholder"></div>
+    <script src="/js/common.js"></script>
+    <script>
+        const u = CR.user();
+        if (u) {
+            document.getElementById('c-nom').value = `${u.prenom || ''} ${u.nom || ''}`.trim();
+            document.getElementById('c-email').value = u.email || '';
+        }
+
+        // Pre-remplissage selon ?plan=... venant de pricing.html
+        (function () {
+            const qs = new URLSearchParams(location.search);
+            const plan = qs.get('plan');
+            if (!plan) return;
+            const planLabels = {
+                premium: 'Abonnement Premium (4,99 EUR / mois)',
+                pro_local: 'Abonnement Pro Local (29 EUR / mois)',
+                enterprise: 'Pack Entreprise (149 EUR / mois)',
+                boost_7j: 'Pack promotion Boost 7 jours (15 EUR)',
+                premium_30j: 'Pack promotion Premium 30 jours (49 EUR)',
+                sponsored: 'Pack promotion Sponsorise 60 jours (99 EUR)'
+            };
+            const label = planLabels[plan] || plan;
+            // Pre-remplit la categorie
+            const cat = ['premium','pro_local','enterprise'].includes(plan) ? 'pro' : 'pro';
+            document.getElementById('c-cat').value = cat;
+            document.getElementById('c-sujet').value = `Demande d information : ${label}`;
+            document.getElementById('c-msg').value =
+                `Bonjour,\n\nJe souhaite obtenir plus d informations sur l offre "${label}".\n\n` +
+                `Merci de me recontacter pour discuter des modalites.\n\nCordialement,`;
+            // Banniere d info
+            const main = document.querySelector('main .container');
+            if (main) {
+                const banner = document.createElement('div');
+                banner.className = 'alert alert-info mt-md';
+                banner.innerHTML = `<strong>📢 Vous avez choisi : ${CR.escape(label)}</strong> — Envoyez-nous ce formulaire et notre equipe vous recontactera pour finaliser votre abonnement.`;
+                main.insertBefore(banner, main.children[2] || null);
+            }
+        })();
+
+        document.getElementById('contact-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type=submit]');
+            btn.disabled = true;
+            btn.textContent = 'Envoi...';
+            try {
+                const r = await CR.post('/contact', {
+                    nom: document.getElementById('c-nom').value.trim(),
+                    email: document.getElementById('c-email').value.trim(),
+                    categorie: document.getElementById('c-cat').value,
+                    sujet: document.getElementById('c-sujet').value.trim(),
+                    message: document.getElementById('c-msg').value.trim()
+                });
+                document.getElementById('contact-result').innerHTML = `<div class="alert alert-success">✅ ${CR.escape(r.message)} Ref : #${r.id}</div>`;
+                e.target.reset();
+                CR.toast('Message envoye', 'success');
+            } catch (err) {
+                document.getElementById('contact-result').innerHTML = `<div class="alert alert-danger">${CR.escape(err.message)}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Envoyer';
+            }
+        });
+    </script>
+</body>
+</html>

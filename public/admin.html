@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - CultureRadar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+
+    <main class="section">
+        <div class="container">
+            <div class="flex" style="justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;">
+                <div>
+                    <h1 style="font-size:2rem;">🛠️ Administration</h1>
+                    <p class="muted">Tableau de bord global - KPIs, utilisateurs, partenariats, rapports mensuels.</p>
+                </div>
+                <button class="btn btn-primary" onclick="generateReport()">📄 Generer le rapport mensuel</button>
+            </div>
+
+            <div class="mt-lg flex filters" style="gap:.5rem;">
+                <div class="filter-chip active" onclick="showTab('dashboard')" data-tab="dashboard">📊 Tableau de bord</div>
+                <div class="filter-chip" onclick="showTab('users')" data-tab="users">👥 Utilisateurs</div>
+                <div class="filter-chip" onclick="showTab('events-mod')" data-tab="events-mod">🎟️ Moderer</div>
+                <div class="filter-chip" onclick="showTab('contact')" data-tab="contact">📬 Messages</div>
+                <div class="filter-chip" onclick="showTab('partnerships')" data-tab="partnerships">🤝 Partenariats</div>
+                <div class="filter-chip" onclick="showTab('reports')" data-tab="reports">📈 Rapports</div>
+            </div>
+
+            <div id="tab-dashboard" class="tab mt-md">
+                <div class="grid dash-grid" id="kpi-admin"></div>
+
+                <div class="grid grid-2 mt-lg">
+                    <div class="card" style="padding:1.25rem;">
+                        <h3>Inscriptions (7 derniers jours)</h3>
+                        <canvas id="chart-signups" height="180"></canvas>
+                    </div>
+                    <div class="card" style="padding:1.25rem;">
+                        <h3>Reservations (30 derniers jours)</h3>
+                        <canvas id="chart-reservations" height="180"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-2 mt-lg">
+                    <div class="card" style="padding:1.25rem;">
+                        <h3>Top categories (30j)</h3>
+                        <canvas id="chart-categories" height="220"></canvas>
+                    </div>
+                    <div class="card" style="padding:1.25rem;">
+                        <h3>Top villes</h3>
+                        <canvas id="chart-villes" height="220"></canvas>
+                    </div>
+                </div>
+
+                <div class="card mt-lg" style="padding:1.25rem;">
+                    <h3>Top evenements (par inscrits)</h3>
+                    <div id="top-events" class="mt-md"></div>
+                </div>
+            </div>
+
+            <div id="tab-users" class="tab mt-md hidden">
+                <div class="card" style="padding:1.25rem;">
+                    <h3>Gestion des utilisateurs</h3>
+                    <p class="muted small">Modifiez role, abonnement et statut actif. Les changements sont enregistres en temps reel.</p>
+                    <div class="form-row mt-md" style="grid-template-columns: 1fr auto;">
+                        <input type="text" id="users-search" placeholder="🔍 Rechercher par email ou nom..." oninput="filterUsers(this.value)">
+                        <button class="btn btn-ghost" onclick="loadUsers()">🔄 Rafraichir</button>
+                    </div>
+                    <div class="table-wrap mt-md"><table class="tbl" id="users-table">
+                        <thead><tr>
+                            <th>Email</th><th>Nom</th><th>Ville</th>
+                            <th>Role</th><th>Abonnement</th><th>Statut</th>
+                            <th>Inscrit le</th><th>Derniere connexion</th><th>Actions</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table></div>
+                </div>
+            </div>
+
+            <div id="tab-partnerships" class="tab mt-md hidden">
+                <div class="card" style="padding:1.25rem;">
+                    <h3>Nouveau partenariat</h3>
+                    <div class="form-row">
+                        <div class="form-group"><label>Nom *</label><input id="pt-nom"></div>
+                        <div class="form-group"><label>Type *</label>
+                            <select id="pt-type">
+                                <option value="collectivite">Collectivite</option>
+                                <option value="ecole">Ecole / Universite</option>
+                                <option value="entreprise">Entreprise</option>
+                                <option value="media">Media</option>
+                                <option value="autre">Autre</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Contact nom</label><input id="pt-contact-nom"></div>
+                        <div class="form-group"><label>Contact email</label><input type="email" id="pt-contact-email"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Montant annuel (EUR)</label><input type="number" id="pt-montant" value="0"></div>
+                        <div class="form-group"><label>Debut</label><input type="date" id="pt-debut"></div>
+                        <div class="form-group"><label>Fin</label><input type="date" id="pt-fin"></div>
+                    </div>
+                    <div class="form-group"><label>Description</label><textarea id="pt-desc"></textarea></div>
+                    <button class="btn btn-primary" onclick="addPartnership()">Enregistrer</button>
+                </div>
+                <div class="card mt-lg" style="padding:1.25rem;">
+                    <h3>Partenariats actifs</h3>
+                    <div class="table-wrap mt-md"><table class="tbl" id="partnerships-table">
+                        <thead><tr><th>Nom</th><th>Type</th><th>Contact</th><th>Montant / an</th><th>Statut</th><th>Debut</th><th>Fin</th><th>Actions</th></tr></thead>
+                        <tbody></tbody>
+                    </table></div>
+                </div>
+            </div>
+
+            <div id="tab-events-mod" class="tab mt-md hidden">
+                <div class="card" style="padding:1.25rem;">
+                    <h3>Moderation des evenements</h3>
+                    <p class="muted small">Visualisez et moderez tous les evenements de la plateforme.</p>
+                    <div class="table-wrap mt-md"><table class="tbl" id="events-mod-table">
+                        <thead><tr>
+                            <th>Titre</th><th>Categorie</th><th>Lieu</th><th>Date</th><th>Statut</th><th>Source</th><th>Inscrits</th><th>Actions</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table></div>
+                </div>
+            </div>
+
+            <div id="tab-contact" class="tab mt-md hidden">
+                <div class="card" style="padding:1.25rem;">
+                    <h3>Messages de contact</h3>
+                    <p class="muted small">Messages recus via le formulaire contact.html.</p>
+                    <div class="table-wrap mt-md"><table class="tbl" id="contact-table">
+                        <thead><tr>
+                            <th>Date</th><th>De</th><th>Categorie</th><th>Sujet</th><th>Message</th><th>Statut</th><th>Actions</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table></div>
+                </div>
+            </div>
+
+            <div id="tab-reports" class="tab mt-md hidden">
+                <div class="card" style="padding:1.25rem;">
+                    <h3>Rapports mensuels</h3>
+                    <p class="muted small">Les rapports sont archives et permettent de suivre l evolution mois apres mois.</p>
+                    <div class="table-wrap mt-md"><table class="tbl" id="reports-table">
+                        <thead><tr>
+                            <th>Periode</th><th>Inscrits</th><th>Nouveaux</th>
+                            <th>Evenements</th><th>Reservations</th><th>Avis</th>
+                            <th>Revenu abo.</th><th>Revenu promo.</th><th>Revenu part.</th><th>Total</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="cr-footer-placeholder"></div>
+    <script src="/js/common.js"></script>
+    <script>
+        const user = CR.requireAuth('admin');
+        if (!user) throw 0;
+
+        const charts = {};
+
+        function showTab(name) {
+            document.querySelectorAll('.filter-chip[data-tab]').forEach(el => el.classList.toggle('active', el.dataset.tab === name));
+            document.querySelectorAll('.tab').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + name).classList.remove('hidden');
+            if (name === 'users') loadUsers();
+            if (name === 'partnerships') loadPartnerships();
+            if (name === 'reports') loadReports();
+            if (name === 'events-mod') loadEventsMod();
+            if (name === 'contact') loadContact();
+        }
+        window.showTab = showTab;
+
+        function renderKpis(stats) {
+            document.getElementById('kpi-admin').innerHTML = `
+                <div class="kpi-card"><div class="label">Utilisateurs</div><div class="value">${stats.utilisateurs.total}</div><div class="small muted">${stats.utilisateurs.premium} payants</div></div>
+                <div class="kpi-card"><div class="label">Evenements publies</div><div class="value">${stats.contenu.publies}</div><div class="small muted">/ ${stats.contenu.evenements} total</div></div>
+                <div class="kpi-card"><div class="label">Lieux</div><div class="value">${stats.contenu.lieux}</div><div class="small muted">${stats.contenu.independants} independants</div></div>
+                <div class="kpi-card"><div class="label">Reservations</div><div class="value">${stats.engagement.reservations}</div><div class="small muted">${stats.engagement.avis} avis (${stats.engagement.note_moyenne}★)</div></div>
+                <div class="kpi-card"><div class="label">MRR abonnements</div><div class="value">${stats.revenus.mrr_abonnements} EUR</div></div>
+                <div class="kpi-card"><div class="label">Promotions du mois</div><div class="value">${stats.revenus.mois_promotions} EUR</div></div>
+                <div class="kpi-card"><div class="label">Partenariats / mois</div><div class="value">${stats.revenus.mensualise_partenariats} EUR</div></div>
+                <div class="kpi-card" style="background:linear-gradient(135deg,#5b21b6 0%,#ec4899 100%);color:#fff;"><div class="label" style="color:#f9a8d4;">Revenu mensuel total</div><div class="value">${stats.revenus.total_mensuel} EUR</div></div>
+            `;
+        }
+
+        function chart(id, cfg) {
+            if (charts[id]) charts[id].destroy();
+            charts[id] = new Chart(document.getElementById(id), cfg);
+        }
+        const COLORS = ['#5b21b6','#ec4899','#8b5cf6','#f472b6','#a78bfa','#fbbf24','#34d399','#60a5fa'];
+
+        function renderCharts(stats) {
+            // signups time series
+            const s = stats.series.signups_7j;
+            chart('chart-signups', {
+                type: 'line',
+                data: { labels: s.map(r => r.d), datasets: [{ label: 'Inscriptions', data: s.map(r => r.c), borderColor: '#5b21b6', backgroundColor: 'rgba(91,33,182,0.15)', fill: true, tension: 0.3 }] },
+                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+            const r = stats.series.reservations_30j;
+            chart('chart-reservations', {
+                type: 'bar',
+                data: { labels: r.map(x => x.d), datasets: [{ label: 'Reservations', data: r.map(x => x.c), backgroundColor: '#ec4899' }] },
+                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+            });
+            const cats = stats.repartitions.categories;
+            chart('chart-categories', {
+                type: 'doughnut',
+                data: { labels: cats.map(c => CR.catLabel(c.category)), datasets: [{ data: cats.map(c => c.c), backgroundColor: COLORS }] },
+                options: { plugins: { legend: { position: 'bottom' } } }
+            });
+            const villes = stats.repartitions.villes;
+            chart('chart-villes', {
+                type: 'bar',
+                data: { labels: villes.map(v => v.ville), datasets: [{ label: 'Evenements', data: villes.map(v => v.c), backgroundColor: '#8b5cf6' }] },
+                options: { indexAxis: 'y', plugins: { legend: { display: false } } }
+            });
+        }
+
+        function renderTopEvents(stats) {
+            document.getElementById('top-events').innerHTML = stats.top_evenements.length ? `
+                <div class="table-wrap"><table class="tbl">
+                    <thead><tr><th>#</th><th>Evenement</th><th>Inscrits</th></tr></thead>
+                    <tbody>
+                        ${stats.top_evenements.map((e, i) => `<tr>
+                            <td>${i+1}</td>
+                            <td><a href="/event.html?id=${e.id}">${e.titre}</a></td>
+                            <td><span class="badge badge-primary">${e.inscrits}</span></td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table></div>` : '<p class="muted">Aucun evenement pour le moment.</p>';
+        }
+
+        async function loadStats() {
+            try {
+                const stats = await CR.get('/admin/stats');
+                renderKpis(stats);
+                renderCharts(stats);
+                renderTopEvents(stats);
+            } catch (e) { CR.toast(e.message, 'error'); }
+        }
+
+        let allUsers = [];
+        async function loadUsers() {
+            allUsers = await CR.get('/admin/users');
+            renderUsers(allUsers);
+        }
+        function renderUsers(users) {
+            const tbody = document.querySelector('#users-table tbody');
+            tbody.innerHTML = users.length ? users.map(u => `
+                <tr data-user-id="${u.id}">
+                    <td>${CR.escape(u.email)}</td>
+                    <td>${CR.escape((u.prenom || '') + ' ' + (u.nom || ''))}</td>
+                    <td>${CR.escape(u.ville || '')}</td>
+                    <td>
+                        <select onchange="updateUser(${u.id}, { role: this.value })">
+                            <option value="user" ${u.role==='user'?'selected':''}>user</option>
+                            <option value="pro" ${u.role==='pro'?'selected':''}>pro</option>
+                            <option value="admin" ${u.role==='admin'?'selected':''}>admin</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select onchange="updateUser(${u.id}, { subscription_type: this.value })">
+                            <option value="free" ${u.subscription_type==='free'?'selected':''}>free</option>
+                            <option value="premium" ${u.subscription_type==='premium'?'selected':''}>premium</option>
+                            <option value="pro_local" ${u.subscription_type==='pro_local'?'selected':''}>pro_local</option>
+                            <option value="enterprise" ${u.subscription_type==='enterprise'?'selected':''}>enterprise</option>
+                        </select>
+                    </td>
+                    <td>
+                        <label class="flex gap-sm" style="align-items:center;">
+                            <input type="checkbox" ${u.active ? 'checked' : ''} onchange="updateUser(${u.id}, { active: this.checked })">
+                            <span class="small">${u.active ? 'actif' : 'desactive'}</span>
+                        </label>
+                    </td>
+                    <td class="small muted">${CR.fmtDateShort(u.created_at)}</td>
+                    <td class="small muted">${u.last_login ? CR.fmtDateShort(u.last_login) : '-'}</td>
+                    <td>
+                        <button class="btn btn-ghost btn-sm" onclick="deleteUser(${u.id}, '${CR.escape(u.email)}')" title="Supprimer">🗑️</button>
+                    </td>
+                </tr>
+            `).join('') : '<tr><td colspan="9" class="muted">Aucun utilisateur.</td></tr>';
+        }
+        window.filterUsers = (q) => {
+            const filtered = !q ? allUsers : allUsers.filter(u =>
+                (u.email||'').toLowerCase().includes(q.toLowerCase()) ||
+                (u.nom||'').toLowerCase().includes(q.toLowerCase()) ||
+                (u.prenom||'').toLowerCase().includes(q.toLowerCase())
+            );
+            renderUsers(filtered);
+        };
+        window.updateUser = async (id, patch) => {
+            try { await CR.put('/admin/users/' + id, patch); CR.toast('Utilisateur mis a jour', 'success'); }
+            catch (e) { CR.toast(e.message, 'error'); }
+        };
+        window.deleteUser = async (id, email) => {
+            if (!confirm(`Supprimer definitivement ${email} ? Cette action est irreversible.`)) return;
+            try {
+                await CR.del('/admin/users/' + id);
+                CR.toast('Utilisateur supprime', 'success');
+                loadUsers();
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        async function loadPartnerships() {
+            const list = await CR.get('/admin/partnerships');
+            const tbody = document.querySelector('#partnerships-table tbody');
+            tbody.innerHTML = list.length ? list.map(p => `
+                <tr>
+                    <td><strong>${CR.escape(p.nom)}</strong><br><span class="muted small">${CR.escape(p.description || '')}</span></td>
+                    <td><span class="badge">${CR.escape(p.type)}</span></td>
+                    <td>${CR.escape(p.contact_nom || '')}<br><span class="muted small">${CR.escape(p.contact_email || '')}</span></td>
+                    <td>${p.montant_annuel || 0} EUR</td>
+                    <td>
+                        <select onchange="updatePartnership(${p.id}, this.value)">
+                            <option value="actif" ${p.status==='actif'?'selected':''}>Actif</option>
+                            <option value="suspendu" ${p.status==='suspendu'?'selected':''}>Suspendu</option>
+                            <option value="termine" ${p.status==='termine'?'selected':''}>Termine</option>
+                        </select>
+                    </td>
+                    <td class="small muted">${p.date_debut || '-'}</td>
+                    <td class="small muted">${p.date_fin || '-'}</td>
+                    <td><button class="btn btn-ghost btn-sm" onclick="deletePartnership(${p.id})" title="Supprimer">🗑️</button></td>
+                </tr>
+            `).join('') : '<tr><td colspan="8" class="muted">Aucun partenariat.</td></tr>';
+        }
+        window.updatePartnership = async (id, status) => {
+            try { await CR.put('/admin/partnerships/' + id, { status }); CR.toast('Statut mis a jour', 'success'); }
+            catch (e) { CR.toast(e.message, 'error'); }
+        };
+        window.deletePartnership = async (id) => {
+            if (!confirm('Supprimer ce partenariat ?')) return;
+            try { await CR.del('/admin/partnerships/' + id); CR.toast('Supprime', 'success'); loadPartnerships(); }
+            catch (e) { CR.toast(e.message, 'error'); }
+        };
+        window.addPartnership = async () => {
+            try {
+                await CR.post('/admin/partnerships', {
+                    nom: document.getElementById('pt-nom').value,
+                    type: document.getElementById('pt-type').value,
+                    contact_nom: document.getElementById('pt-contact-nom').value,
+                    contact_email: document.getElementById('pt-contact-email').value,
+                    description: document.getElementById('pt-desc').value,
+                    montant_annuel: Number(document.getElementById('pt-montant').value || 0),
+                    date_debut: document.getElementById('pt-debut').value || null,
+                    date_fin: document.getElementById('pt-fin').value || null
+                });
+                CR.toast('Partenariat enregistre', 'success');
+                document.querySelectorAll('#tab-partnerships input, #tab-partnerships textarea').forEach(el => el.value = '');
+                loadPartnerships();
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        async function loadReports() {
+            const reports = await CR.get('/admin/reports');
+            const tbody = document.querySelector('#reports-table tbody');
+            tbody.innerHTML = reports.length ? reports.map(r => `
+                <tr>
+                    <td><strong>${String(r.mois).padStart(2,'0')}/${r.annee}</strong></td>
+                    <td>${r.nb_users}</td>
+                    <td>${r.nb_nouveaux_users}</td>
+                    <td>${r.nb_events}</td>
+                    <td>${r.nb_reservations}</td>
+                    <td>${r.nb_reviews}</td>
+                    <td>${(r.revenu_abonnements||0).toFixed(2)} EUR</td>
+                    <td>${(r.revenu_promotions||0).toFixed(2)} EUR</td>
+                    <td>${(r.revenu_partenariats||0).toFixed(2)} EUR</td>
+                    <td><strong>${(r.revenu_total||0).toFixed(2)} EUR</strong></td>
+                </tr>
+            `).join('') : '<tr><td colspan="10" class="muted">Aucun rapport pour le moment. Cliquez sur "Generer le rapport mensuel".</td></tr>';
+        }
+
+        async function loadEventsMod() {
+            const rows = await CR.get('/admin/events');
+            const tbody = document.querySelector('#events-mod-table tbody');
+            tbody.innerHTML = rows.length ? rows.map(e => `
+                <tr>
+                    <td><a href="/event.html?id=${e.id}">${CR.escape(e.titre)}</a></td>
+                    <td>${CR.catIcon(e.category)} ${CR.catLabel(e.category)}</td>
+                    <td>${CR.escape(e.place_nom || '—')}<br><span class="muted small">${CR.escape(e.ville || '')}</span></td>
+                    <td class="small">${CR.fmtDate(e.date_debut)}</td>
+                    <td><span class="badge ${e.status === 'published' ? 'badge-success' : ''}">${e.status}</span></td>
+                    <td class="small muted">${CR.escape(e.source)}</td>
+                    <td>${e.nb_inscrits}</td>
+                    <td><button class="btn btn-ghost btn-sm" onclick="delEvt(${e.id})">🗑️</button></td>
+                </tr>
+            `).join('') : '<tr><td colspan="8" class="muted">Aucun evenement.</td></tr>';
+        }
+        window.delEvt = async (id) => {
+            if (!confirm('Supprimer definitivement cet evenement ?')) return;
+            try { await CR.del('/admin/events/' + id); CR.toast('Supprime', 'success'); loadEventsMod(); }
+            catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        async function loadContact() {
+            const rows = await CR.get('/admin/contact');
+            const tbody = document.querySelector('#contact-table tbody');
+            tbody.innerHTML = rows.length ? rows.map(m => `
+                <tr>
+                    <td class="small muted">${CR.fmtDateShort(m.created_at)}</td>
+                    <td><strong>${CR.escape(m.nom)}</strong><br><a class="small" href="mailto:${CR.escape(m.email)}">${CR.escape(m.email)}</a></td>
+                    <td><span class="badge">${CR.escape(m.categorie)}</span></td>
+                    <td>${CR.escape(m.sujet)}</td>
+                    <td><div style="max-width:360px;font-size:.85rem;">${CR.escape(m.message).slice(0, 200)}${m.message.length > 200 ? '...' : ''}</div></td>
+                    <td>
+                        <select onchange="updMsg(${m.id}, this.value)">
+                            <option value="nouveau" ${m.status==='nouveau'?'selected':''}>Nouveau</option>
+                            <option value="lu" ${m.status==='lu'?'selected':''}>Lu</option>
+                            <option value="traite" ${m.status==='traite'?'selected':''}>Traite</option>
+                            <option value="ignore" ${m.status==='ignore'?'selected':''}>Ignore</option>
+                        </select>
+                    </td>
+                    <td><a class="btn btn-ghost btn-sm" href="mailto:${CR.escape(m.email)}?subject=Re: ${encodeURIComponent(m.sujet)}">↩️</a></td>
+                </tr>
+            `).join('') : '<tr><td colspan="7" class="muted">Aucun message.</td></tr>';
+        }
+        window.updMsg = async (id, status) => {
+            try { await CR.put('/admin/contact/' + id, { status }); CR.toast('Mis a jour', 'success'); }
+            catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        window.generateReport = async () => {
+            try {
+                const r = await CR.post('/admin/reports/monthly', {});
+                CR.toast(`Rapport ${String(r.mois).padStart(2,'0')}/${r.annee} genere - Revenu total ${r.revenu_total.toFixed(2)} EUR`, 'success', 4500);
+                loadReports();
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        loadStats();
+    </script>
+</body>
+</html>

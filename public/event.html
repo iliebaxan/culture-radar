@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evenement - CultureRadar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+
+    <main>
+        <div id="content"><div class="loader-full"><div class="spinner"></div></div></div>
+    </main>
+
+    <div id="cr-footer-placeholder"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/js/common.js"></script>
+    <script>
+        const id = new URLSearchParams(location.search).get('id');
+        if (!id) { document.getElementById('content').innerHTML = '<div class="container section"><p class="alert alert-danger">ID manquant.</p></div>'; throw 0; }
+
+        let currentEvent = null;
+        let myReservation = null;
+
+        async function load() {
+            try {
+                const e = await CR.get(`/events/${id}`);
+                currentEvent = e;
+                CR.track('event_view', { event_id: id });
+                document.title = `${e.titre} - CultureRadar`;
+
+                // Charge l'etat de ma reservation si connecte
+                if (CR.user()) {
+                    try { myReservation = await CR.get(`/reservations/by-event/${id}`); }
+                    catch { myReservation = null; }
+                }
+
+                render(e);
+                setTimeout(() => initMap(e), 100);
+            } catch (err) {
+                document.getElementById('content').innerHTML = `<div class="container section"><p class="alert alert-danger">${CR.escape(err.message)}</p></div>`;
+            }
+        }
+
+        function render(e) {
+            const u = CR.user();
+            const isPast = new Date(e.date_debut) < new Date() && (!e.date_fin || new Date(e.date_fin) < new Date());
+            const indep = e.is_independent ? '<span class="badge badge-cr">⭐ Badge CultureRadar - Lieu independant</span>' : '';
+            const promoted = e.is_promoted ? '<span class="badge badge-accent">Mis en avant</span>' : '';
+            const status = e.status === 'cancelled' ? '<span class="badge" style="background:#fee2e2;color:#991b1b;">Annule</span>' : '';
+            const past = isPast ? '<span class="badge" style="background:#f3f4f6;">Termine</span>' : '';
+            const img = e.image_url || CR.fallbackImage(e.category, 1600);
+            const galerie = e.galerie?.length ? e.galerie : [img];
+
+            const acc = e.accessibility_detail || {};
+            const placeAcc = e.place_accessibility || {};
+
+            const reviewsCount = e.nb_reviews || 0;
+            const avg = e.note_moyenne || 0;
+
+            const breakdown = {};
+            (e.note_breakdown || []).forEach(b => breakdown[b.note] = b.c);
+
+            const horairesHtml = e.place_horaires ? `
+                <div class="info-block">
+                    <h4>⏰ Horaires d ouverture du lieu</h4>
+                    <ul class="hours-list">
+                        ${Object.entries(e.place_horaires).map(([j, v]) => `<li><strong>${j} :</strong> ${v}</li>`).join('')}
+                    </ul>
+                </div>` : '';
+
+            const servicesHtml = e.place_services ? `
+                <div class="info-block">
+                    <h4>✨ Services du lieu</h4>
+                    <div class="services-grid">
+                        ${Object.entries(e.place_services).filter(([,v]) => v).map(([k]) => `<span class="service-pill">${CR.escape(serviceLabel(k))}</span>`).join('')}
+                    </div>
+                </div>` : '';
+
+            const transportHtml = e.place_transport ? `
+                <div class="info-block">
+                    <h4>🚇 Transport & acces</h4>
+                    <ul>
+                        ${Object.entries(e.place_transport).map(([k, v]) => `<li><strong>${transportLabel(k)} :</strong> ${CR.escape(v)}</li>`).join('')}
+                    </ul>
+                </div>` : '';
+
+            const accessHtml = (Object.values(acc).some(Boolean) || Object.values(placeAcc).some(Boolean)) ? `
+                <div class="info-block">
+                    <h4>♿ Accessibilite</h4>
+                    <div class="services-grid">
+                        ${e.accessibility_pmr || placeAcc.pmr ? '<span class="service-pill access">♿ Acces PMR</span>' : ''}
+                        ${e.accessibility_audio || placeAcc.audio ? '<span class="service-pill access">🦻 Audio-description</span>' : ''}
+                        ${e.accessibility_visuel || placeAcc.visuel ? '<span class="service-pill access">👁️ Adapte aux deficients visuels</span>' : ''}
+                        ${placeAcc.ascenseur ? '<span class="service-pill access">🛗 Ascenseur</span>' : ''}
+                        ${placeAcc.toilettes_pmr ? '<span class="service-pill access">🚻 WC PMR</span>' : ''}
+                        ${placeAcc.boucle_magnetique ? '<span class="service-pill access">🎧 Boucle magnetique</span>' : ''}
+                        ${placeAcc.audioguide ? '<span class="service-pill access">🎧 Audioguide</span>' : ''}
+                        ${placeAcc.langue_signes ? '<span class="service-pill access">🤟 Langue des signes</span>' : ''}
+                        ${placeAcc.audio_description ? '<span class="service-pill access">🔊 Audio-description</span>' : ''}
+                    </div>
+                    ${placeAcc.places_pmr ? `<p class="muted small mt-sm">${placeAcc.places_pmr} places PMR disponibles.</p>` : ''}
+                </div>` : '';
+
+            const artistesHtml = e.artistes?.length ? `
+                <div class="info-block">
+                    <h4>🎭 Artistes / Equipe</h4>
+                    <ul>${e.artistes.map(a => `<li>${CR.escape(a)}</li>`).join('')}</ul>
+                </div>` : '';
+
+            const placesDispoPct = e.places_max ? Math.max(5, Math.round((e.places_disponibles || 0) / e.places_max * 100)) : null;
+            const dispoHtml = e.places_max ? `
+                <div class="progress-container">
+                    <div class="progress-label">
+                        <span>${e.places_disponibles || 0} places disponibles</span>
+                        <span class="muted">/ ${e.places_max}</span>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" style="width:${placesDispoPct}%;"></div></div>
+                </div>` : (e.places_disponibles != null ? `<p><strong>Places restantes :</strong> ${e.places_disponibles}</p>` : '');
+
+            const reviewsHtml = e.reviews?.length ? e.reviews.map(r => `
+                <div class="review-card">
+                    <div class="flex-between mb-sm">
+                        <strong>${CR.escape(r.prenom || '')} ${r.nom ? r.nom.charAt(0) + '.' : ''}</strong>
+                        <span class="stars">${'★'.repeat(r.note)}${'☆'.repeat(5 - r.note)}</span>
+                    </div>
+                    ${r.commentaire ? `<p class="small">${CR.escape(r.commentaire)}</p>` : ''}
+                    <p class="muted small">${CR.fmtDate(r.created_at)}</p>
+                </div>
+            `).join('') : '<p class="muted">Aucun avis pour l instant. Soyez le premier !</p>';
+
+            const similarHtml = e.similar?.length ? `
+                <section class="section-sm">
+                    <div class="container">
+                        <h3>Vous aimerez aussi</h3>
+                        <div class="grid grid-3 mt-md">
+                            ${e.similar.map(s => CR.renderEventCard(s)).join('')}
+                        </div>
+                    </div>
+                </section>` : '';
+
+            const seancesHtml = e.seances?.length ? `
+                <div class="info-block">
+                    <h4>📅 Seances supplementaires</h4>
+                    <ul>${e.seances.map(s => `<li>${CR.fmtDate(s)}</li>`).join('')}</ul>
+                </div>` : '';
+
+            const galerieHtml = galerie.length > 1 ? `
+                <div class="gallery-thumbs">
+                    ${galerie.slice(0, 4).map((g, i) => `<img src="${CR.escape(g)}" alt="" onclick="swapHero('${CR.escape(g)}')" class="${i===0?'active':''}">`).join('')}
+                </div>` : '';
+
+            document.getElementById('content').innerHTML = `
+            <section class="event-hero" style="background-image: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.35)), url('${CR.escape(img)}');">
+                <div class="container event-hero-content">
+                    <a href="/events.html" class="back-link">← Retour au catalogue</a>
+                    <div class="flex gap-sm mb-sm" style="flex-wrap:wrap;">
+                        <span class="badge badge-primary">${CR.catIcon(e.category)} ${CR.catLabel(e.category)}</span>
+                        ${e.format ? `<span class="badge">${CR.formatLabel(e.format)}</span>` : ''}
+                        ${e.sous_categorie ? `<span class="badge">${CR.escape(e.sous_categorie)}</span>` : ''}
+                        ${indep}${promoted}${status}${past}
+                    </div>
+                    <h1 style="color:white;">${CR.escape(e.titre)}</h1>
+                    <p style="color:#f3f4f6;font-size:1.15rem;max-width:760px;">${CR.escape(e.description || '')}</p>
+                    <div class="hero-facts mt-md">
+                        <div class="fact"><span class="fact-icon">📅</span><div><div class="fact-label">Date</div><div class="fact-value">${CR.fmtDateOnly(e.date_debut)}</div></div></div>
+                        <div class="fact"><span class="fact-icon">🕒</span><div><div class="fact-label">Horaire</div><div class="fact-value">${CR.fmtTime(e.date_debut)}${e.duree_minutes ? ' • ' + CR.fmtDuration(e.duree_minutes) : ''}</div></div></div>
+                        ${e.place_nom ? `<div class="fact"><span class="fact-icon">📍</span><div><div class="fact-label">Lieu</div><div class="fact-value">${CR.escape(e.place_nom)}</div></div></div>` : ''}
+                        <div class="fact"><span class="fact-icon">💶</span><div><div class="fact-label">Tarif</div><div class="fact-value">${CR.fmtPrix(e)}</div></div></div>
+                    </div>
+                </div>
+            </section>
+
+            ${galerieHtml}
+
+            <section class="section event-layout">
+                <div class="container">
+                    <div class="event-body">
+                        <main class="event-main">
+                            <h2>A propos de l evenement</h2>
+                            <div class="event-desc">${CR.escape(e.description_longue || e.description || 'Pas de description detaillee.').replace(/\n/g, '<br>')}</div>
+
+                            ${artistesHtml}
+                            ${seancesHtml}
+
+                            ${e.infos_pratiques ? `
+                                <div class="info-block">
+                                    <h4>💡 Infos pratiques</h4>
+                                    <p>${CR.escape(e.infos_pratiques)}</p>
+                                </div>` : ''}
+
+                            ${accessHtml}
+                            ${servicesHtml}
+                            ${transportHtml}
+                            ${horairesHtml}
+
+                            ${e.tags ? `
+                                <div class="info-block">
+                                    <h4>🏷️ Tags</h4>
+                                    <div class="flex gap-sm" style="flex-wrap:wrap;">
+                                        ${e.tags.split(',').filter(Boolean).map(t => `<a class="badge" href="/events.html?q=${encodeURIComponent(t.trim())}">#${CR.escape(t.trim())}</a>`).join('')}
+                                    </div>
+                                </div>` : ''}
+
+                            <h2 class="mt-lg">Localisation</h2>
+                            <div id="event-map" style="height:360px;border-radius:var(--cr-radius);overflow:hidden;border:1px solid var(--cr-border);"></div>
+
+                            <div class="reviews-section mt-lg">
+                                <div class="flex-between">
+                                    <h2>Avis (${reviewsCount})</h2>
+                                    ${avg ? `<div class="review-summary"><span class="big-note">${avg}</span><span class="stars">${'★'.repeat(Math.round(avg))}</span><span class="muted">sur ${reviewsCount} avis</span></div>` : ''}
+                                </div>
+                                ${reviewsCount ? `
+                                    <div class="rating-breakdown mt-md">
+                                        ${[5,4,3,2,1].map(n => {
+                                            const count = breakdown[n] || 0;
+                                            const pct = reviewsCount ? (count / reviewsCount * 100) : 0;
+                                            return `<div class="rating-row"><span>${n} ★</span><div class="rating-bar"><div class="rating-fill" style="width:${pct}%;"></div></div><span class="muted small">${count}</span></div>`;
+                                        }).join('')}
+                                    </div>` : ''}
+                                <div class="mt-md" id="reviews-list">${reviewsHtml}</div>
+
+                                ${u ? `
+                                    <div class="card mt-lg" style="padding:1.25rem;">
+                                        <h3>Laisser un avis</h3>
+                                        <div class="form-group"><label>Note</label>
+                                            <div class="star-rating" id="star-rating">
+                                                ${[1,2,3,4,5].map(n => `<span data-n="${n}" onclick="selectStar(${n})">☆</span>`).join('')}
+                                            </div>
+                                            <input type="hidden" id="review-note" value="5">
+                                        </div>
+                                        <div class="form-group"><label>Commentaire</label><textarea id="review-comment" placeholder="Partagez votre experience..."></textarea></div>
+                                        <button class="btn btn-primary" onclick="postReview()">Publier mon avis</button>
+                                    </div>` : `
+                                    <div class="alert alert-info mt-lg">Connectez-vous pour laisser un avis. <a href="/login.html?redirect=${encodeURIComponent(location.pathname + location.search)}">Se connecter</a></div>`}
+                            </div>
+                        </main>
+
+                        <aside class="event-aside">
+                            <div class="card booking-card">
+                                <div class="booking-header">
+                                    <div class="booking-date">
+                                        <div class="muted small">Le</div>
+                                        <div class="booking-day">${new Date(e.date_debut).toLocaleDateString('fr-FR', { day:'2-digit' })}</div>
+                                        <div>${new Date(e.date_debut).toLocaleDateString('fr-FR', { month:'long' })}</div>
+                                        <div class="muted small">${CR.fmtTime(e.date_debut)}</div>
+                                    </div>
+                                    <div class="booking-price">
+                                        <div class="muted small">Tarif</div>
+                                        <div class="big-price">${CR.fmtPrix(e)}</div>
+                                        ${e.tarif_reduit && !e.gratuit ? `<div class="muted small">Reduit : ${e.tarif_reduit} EUR</div>` : ''}
+                                    </div>
+                                </div>
+
+                                ${dispoHtml}
+
+                                ${(() => {
+                                    // Smart fallback chain so the "Reserver" CTA always points somewhere useful
+                                    const directUrl = e.url_billetterie || e.site_officiel || '';
+                                    const venueUrl = e.place_site_web || '';
+                                    let reserveUrl = directUrl || venueUrl || '';
+                                    let reserveLabel;
+                                    let reserveKind;
+                                    if (directUrl) {
+                                        reserveLabel = '🎟️ Reserver sur le site officiel ↗';
+                                        reserveKind = 'direct';
+                                    } else if (venueUrl) {
+                                        reserveLabel = '🎟️ Voir sur le site du lieu ↗';
+                                        reserveKind = 'venue';
+                                    } else {
+                                        // Last resort: search the event title + city on the web
+                                        const q = encodeURIComponent(`${e.titre} ${e.place_nom || ''} ${e.ville || ''} billetterie`);
+                                        reserveUrl = `https://www.google.com/search?q=${q}`;
+                                        reserveLabel = '🔎 Trouver la billetterie en ligne ↗';
+                                        reserveKind = 'search';
+                                    }
+                                    const sourceName = e.source && e.source !== 'culture-radar' ? e.source : (e.place_nom || 'l organisateur');
+                                    const isLiked = myReservation?.status === 'envie';
+                                    const noteHtml = reserveKind === 'direct'
+                                        ? `<p class="muted small" style="margin:0;text-align:center;">Vous serez redirige vers le site officiel de ${CR.escape(sourceName)} pour finaliser votre reservation.</p>`
+                                        : reserveKind === 'venue'
+                                            ? `<p class="muted small" style="margin:0;text-align:center;">Pas de billetterie directe : redirection vers le site officiel du lieu (${CR.escape(e.place_nom || '')}).</p>`
+                                            : `<p class="muted small" style="margin:0;text-align:center;">L organisateur n a pas fourni de lien direct. Nous lancons une recherche pour vous.</p>`;
+                                    return `
+                                    <div class="flex gap-sm mt-md" style="flex-direction:column;">
+                                        <button class="btn ${isLiked ? 'btn-primary' : 'btn-outline'}" onclick="toggleEnvie()">${isLiked ? '💖 Dans mes envies' : '🤍 Ajouter a mes envies'}</button>
+                                        <a class="btn btn-primary ${isPast ? 'disabled' : ''}" href="${CR.escape(reserveUrl)}" target="_blank" rel="noopener" ${isPast ? 'onclick="event.preventDefault()"' : `onclick="CR.track('reservation_redirect', { event_id: ${e.id}, source: '${e.source||''}', kind: '${reserveKind}' })"`}>${reserveLabel}</a>
+                                        ${noteHtml}
+                                        ${e.place_telephone ? `<a class="btn btn-outline btn-sm" href="tel:${CR.escape(e.place_telephone)}">📞 Appeler ${CR.escape(e.place_telephone)}</a>` : ''}
+                                    </div>`;
+                                })()}
+
+                                <div class="share-row mt-md">
+                                    <a class="icon-btn" href="${CR.icsUrl(e)}" download="evenement-${e.id}.ics" title="Ajouter a mon calendrier">📅</a>
+                                    <button class="icon-btn" onclick="sharePage()" title="Partager">🔗</button>
+                                    <button class="icon-btn" onclick="navigator.clipboard.writeText(location.href);CR.toast('Lien copie','success')" title="Copier le lien">📋</button>
+                                </div>
+                            </div>
+
+                            <div class="card info-sidebar mt-md">
+                                <h3>Informations</h3>
+                                <ul class="info-list">
+                                    <li><strong>Categorie :</strong> ${CR.catLabel(e.category)}</li>
+                                    ${e.sous_categorie ? `<li><strong>Genre :</strong> ${CR.escape(e.sous_categorie)}</li>` : ''}
+                                    ${e.format ? `<li><strong>Format :</strong> ${CR.formatLabel(e.format)}</li>` : ''}
+                                    ${e.public_cible ? `<li><strong>Public :</strong> ${CR.publicLabel(e.public_cible)}</li>` : ''}
+                                    ${e.age_min != null ? `<li><strong>Age :</strong> ${e.age_min}${e.age_max ? ' - ' + e.age_max : '+'} ans</li>` : ''}
+                                    ${e.langue ? `<li><strong>Langue :</strong> ${e.langue.toUpperCase()}</li>` : ''}
+                                    ${e.duree_minutes ? `<li><strong>Duree :</strong> ${CR.fmtDuration(e.duree_minutes)}</li>` : ''}
+                                    ${e.outdoor ? '<li><strong>Type :</strong> 🌳 En plein air</li>' : ''}
+                                    ${e.organisateur_nom ? `<li><strong>Organisateur :</strong> ${CR.escape(e.organisateur_nom)}</li>` : ''}
+                                    ${e.source !== 'culture-radar' ? `<li><strong>Source :</strong> ${CR.escape(e.source)}</li>` : ''}
+                                    <li><strong>Inscrits :</strong> ${e.nb_inscrits}</li>
+                                    <li><strong>Vues :</strong> ${e.views_count || 1}</li>
+                                </ul>
+                            </div>
+
+                            ${e.place_nom ? `
+                            <div class="card info-sidebar mt-md">
+                                <h3>📍 Le lieu</h3>
+                                <p><strong>${CR.escape(e.place_nom)}</strong></p>
+                                <p class="muted">${CR.escape(e.adresse || '')}${e.code_postal ? ', ' + e.code_postal : ''}<br>${CR.escape(e.ville || '')}</p>
+                                ${e.place_telephone ? `<p class="small">📞 ${CR.escape(e.place_telephone)}</p>` : ''}
+                                ${e.place_email ? `<p class="small">✉️ <a href="mailto:${CR.escape(e.place_email)}">${CR.escape(e.place_email)}</a></p>` : ''}
+                                ${e.place_site_web ? `<p class="small">🌐 <a href="${CR.escape(e.place_site_web)}" target="_blank" rel="noopener">Site officiel</a></p>` : ''}
+                                ${e.place_id ? `<a class="btn btn-outline btn-block btn-sm mt-sm" href="/place.html?id=${e.place_id}">Voir la fiche lieu</a>` : ''}
+                                <a class="btn btn-ghost btn-block btn-sm mt-sm" href="https://www.google.com/maps/dir/?api=1&destination=${e.place_lat},${e.place_lng}" target="_blank" rel="noopener">🗺️ Itineraire</a>
+                            </div>` : ''}
+                        </aside>
+                    </div>
+                </div>
+            </section>
+
+            ${similarHtml}`;
+        }
+
+        function serviceLabel(k) {
+            const m = {
+                bar: '🍺 Bar', restaurant: '🍽️ Restaurant', cafe: '☕ Cafe', boutique: '🛍️ Boutique',
+                librairie: '📚 Librairie', vestiaire: '🧥 Vestiaire', wifi: '📶 Wi-Fi',
+                audioguide: '🎧 Audioguide', visites_guidees: '👥 Visites guidees', visites_commentees: '💬 Visites commentees',
+                atelier_enfants: '🧸 Ateliers enfants', espace_enfant: '🧸 Espace enfant',
+                billetterie_en_ligne: '🎟️ Billetterie en ligne', carte_fidelite: '⭐ Carte fidelite',
+                skate_park: '🛹 Skate park', terrasse: '☀️ Terrasse', guinguette: '🎪 Guinguette',
+                bibliotheque: '📚 Bibliotheque', hammam: '♨️ Hammam', climatisation: '❄️ Climatisation',
+                boucle_magnetique: '🎧 Boucle magnetique', prise_electrique: '🔌 Prises',
+                impression: '🖨️ Impression', bibliobus: '🚍 Bibliobus', guides: '👥 Guides',
+                restauration: '🍽️ Restauration'
+            };
+            return m[k] || k.replace(/_/g, ' ');
+        }
+
+        function transportLabel(k) {
+            const m = { metro: '🚇 Metro', bus: '🚌 Bus', tram: '🚊 Tram', rer: '🚆 RER',
+                velib: '🚲 Velib', parking: '🅿️ Parking' };
+            return m[k] || k;
+        }
+
+        function initMap(e) {
+            if (!e.place_lat || !e.place_lng) return;
+            const map = L.map('event-map', { scrollWheelZoom: false }).setView([e.place_lat, e.place_lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors', maxZoom: 19
+            }).addTo(map);
+            L.marker([e.place_lat, e.place_lng]).addTo(map)
+                .bindPopup(`<strong>${e.place_nom}</strong><br>${e.adresse || ''}<br>${e.ville || ''}`)
+                .openPopup();
+        }
+
+        window.swapHero = (url) => {
+            const h = document.querySelector('.event-hero');
+            if (h) h.style.backgroundImage = `linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.35)), url('${url}')`;
+            document.querySelectorAll('.gallery-thumbs img').forEach(el => el.classList.toggle('active', el.src === url));
+        };
+
+        window.toggleEnvie = async function() {
+            if (!CR.user()) {
+                CR.toast('Connectez-vous pour ajouter a vos envies', 'info');
+                setTimeout(() => location.href = '/login.html?redirect=' + encodeURIComponent(location.pathname + location.search), 1200);
+                return;
+            }
+            try {
+                if (myReservation?.status === 'envie') {
+                    await CR.del('/reservations/' + myReservation.id);
+                    CR.toast('Retire de vos envies', 'success');
+                    myReservation = null;
+                    // Update local cache
+                    const set = CR.enviesSet(); set.delete(Number(id)); CR.saveEnvies(set);
+                } else {
+                    const r = await CR.post('/reservations', { event_id: Number(id), status: 'envie' });
+                    myReservation = r;
+                    CR.toast('Ajoute a vos envies !', 'success');
+                    CR.track('envie_added', { event_id: id });
+                    const set = CR.enviesSet(); set.add(Number(id)); CR.saveEnvies(set);
+                }
+                load();
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        window.selectStar = (n) => {
+            document.getElementById('review-note').value = n;
+            document.querySelectorAll('#star-rating span').forEach(s => {
+                const v = Number(s.dataset.n);
+                s.textContent = v <= n ? '★' : '☆';
+                s.classList.toggle('selected', v <= n);
+            });
+        };
+
+        window.postReview = async function() {
+            try {
+                const note = Number(document.getElementById('review-note').value);
+                const commentaire = document.getElementById('review-comment').value;
+                await CR.post('/reviews', { event_id: Number(id), note, commentaire });
+                CR.toast('Merci pour votre avis !', 'success');
+                setTimeout(load, 500);
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        window.sharePage = async function() {
+            if (navigator.share) {
+                try { await navigator.share({ title: currentEvent.titre, text: currentEvent.description, url: location.href }); } catch {}
+            } else {
+                navigator.clipboard.writeText(location.href);
+                CR.toast('Lien copie dans le presse-papier', 'success');
+            }
+        };
+
+        load();
+    </script>
+</body>
+</html>

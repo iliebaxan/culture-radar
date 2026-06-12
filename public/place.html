@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lieu - CultureRadar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+
+    <main>
+        <div id="content"><div class="loader-full"><div class="spinner"></div></div></div>
+    </main>
+
+    <div id="cr-footer-placeholder"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/js/common.js"></script>
+    <script>
+        const id = new URLSearchParams(location.search).get('id');
+        if (!id) { document.getElementById('content').innerHTML = '<div class="container section"><p class="alert alert-danger">ID manquant.</p></div>'; throw 0; }
+
+        function serviceLabel(k) {
+            const m = {
+                bar: '🍺 Bar', restaurant: '🍽️ Restaurant', cafe: '☕ Cafe', boutique: '🛍️ Boutique',
+                librairie: '📚 Librairie', vestiaire: '🧥 Vestiaire', wifi: '📶 Wi-Fi',
+                audioguide: '🎧 Audioguide', visites_guidees: '👥 Visites guidees', visites_commentees: '💬 Visites commentees',
+                atelier_enfants: '🧸 Ateliers enfants', espace_enfant: '🧸 Espace enfant',
+                billetterie_en_ligne: '🎟️ Billetterie en ligne', carte_fidelite: '⭐ Carte fidelite',
+                skate_park: '🛹 Skate park', terrasse: '☀️ Terrasse', guinguette: '🎪 Guinguette',
+                bibliotheque: '📚 Bibliotheque', hammam: '♨️ Hammam', climatisation: '❄️ Climatisation',
+                boucle_magnetique: '🎧 Boucle magnetique', prise_electrique: '🔌 Prises',
+                impression: '🖨️ Impression', bibliobus: '🚍 Bibliobus', guides: '👥 Guides',
+                restauration: '🍽️ Restauration', visites_LSF: '🤟 Visites LSF'
+            };
+            return m[k] || k.replace(/_/g, ' ');
+        }
+        function transportLabel(k) {
+            const m = { metro: '🚇 Metro', bus: '🚌 Bus', tram: '🚊 Tram', rer: '🚆 RER',
+                velib: '🚲 Velib', parking: '🅿️ Parking' };
+            return m[k] || k;
+        }
+
+        (async () => {
+            try {
+                const p = await CR.get(`/places/${id}`);
+                CR.track('place_view', { place_id: id });
+                document.title = `${p.nom} - CultureRadar`;
+
+                const img = p.image_url || 'https://images.unsplash.com/photo-1565060169861-2d4b6e3df115?w=1600&q=80';
+                const galerie = p.galerie?.length ? p.galerie : [img];
+                const acc = p.accessibility || {};
+                const services = p.services || {};
+                const transport = p.transport || {};
+                const horaires = p.horaires;
+
+                const horairesHtml = horaires ? `
+                    <div class="info-block">
+                        <h3>⏰ Horaires d ouverture</h3>
+                        <ul class="hours-list">
+                            ${Object.entries(horaires).map(([j, v]) => `<li><strong>${j}</strong><span>${CR.escape(v)}</span></li>`).join('')}
+                        </ul>
+                    </div>` : '';
+
+                const servicesHtml = Object.values(services).some(Boolean) ? `
+                    <div class="info-block">
+                        <h3>✨ Services</h3>
+                        <div class="services-grid">
+                            ${Object.entries(services).filter(([,v]) => v).map(([k]) => `<span class="service-pill">${CR.escape(serviceLabel(k))}</span>`).join('')}
+                        </div>
+                    </div>` : '';
+
+                const accessHtml = Object.values(acc).some(v => v === true || typeof v === 'number') ? `
+                    <div class="info-block">
+                        <h3>♿ Accessibilite</h3>
+                        <div class="services-grid">
+                            ${acc.pmr ? '<span class="service-pill access">♿ Acces PMR</span>' : ''}
+                            ${acc.audio ? '<span class="service-pill access">🦻 Audio</span>' : ''}
+                            ${acc.visuel ? '<span class="service-pill access">👁️ Visuel</span>' : ''}
+                            ${acc.ascenseur ? '<span class="service-pill access">🛗 Ascenseur</span>' : ''}
+                            ${acc.toilettes_pmr ? '<span class="service-pill access">🚻 WC PMR</span>' : ''}
+                            ${acc.boucle_magnetique ? '<span class="service-pill access">🎧 Boucle magnetique</span>' : ''}
+                            ${acc.audioguide ? '<span class="service-pill access">🎧 Audioguide</span>' : ''}
+                            ${acc.langue_signes ? '<span class="service-pill access">🤟 Langue des signes</span>' : ''}
+                            ${acc.audio_description ? '<span class="service-pill access">🔊 Audio-description</span>' : ''}
+                            ${acc.documents_adaptes ? '<span class="service-pill access">📄 Documents adaptes</span>' : ''}
+                        </div>
+                        ${acc.places_pmr ? `<p class="muted small mt-sm">${acc.places_pmr} places PMR dediees.</p>` : ''}
+                    </div>` : '';
+
+                const transportHtml = Object.values(transport).some(Boolean) ? `
+                    <div class="info-block">
+                        <h3>🚇 Acces</h3>
+                        <ul class="transport-list">
+                            ${Object.entries(transport).map(([k, v]) => `<li><strong>${transportLabel(k)} :</strong> ${CR.escape(v)}</li>`).join('')}
+                        </ul>
+                    </div>` : '';
+
+                const eventsHtml = p.events?.length ? `
+                    <div class="grid grid-3 mt-md">${p.events.map(e => CR.renderEventCard({ ...e, is_independent: p.is_independent, ville: p.ville, place_nom: p.nom })).join('')}</div>
+                ` : '<p class="muted">Aucun evenement programme prochainement.</p>';
+
+                const galerieHtml = galerie.length > 1 ? `
+                    <div class="gallery-thumbs">
+                        ${galerie.slice(0, 4).map((g, i) => `<img src="${CR.escape(g)}" alt="" onclick="swapHero('${CR.escape(g)}')" class="${i===0?'active':''}">`).join('')}
+                    </div>` : '';
+
+                document.getElementById('content').innerHTML = `
+                <section class="event-hero" style="background-image: linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.35)), url('${CR.escape(img)}');">
+                    <div class="container event-hero-content">
+                        <a href="/places.html" class="back-link">← Retour aux lieux</a>
+                        <div class="flex gap-sm mb-sm" style="flex-wrap:wrap;">
+                            <span class="badge badge-primary">${CR.catIcon(p.category)} ${CR.catLabel(p.category)}</span>
+                            ${p.is_independent ? '<span class="badge badge-cr">⭐ Badge CultureRadar</span>' : ''}
+                            ${p.verified ? '<span class="badge badge-success">✅ Verifie</span>' : ''}
+                            ${p.capacite ? `<span class="badge">Capacite ${p.capacite}</span>` : ''}
+                        </div>
+                        <h1 style="color:white;">${CR.escape(p.nom)}</h1>
+                        <p style="color:#f3f4f6;font-size:1.15rem;">📍 ${CR.escape(p.adresse || '')}, ${CR.escape(p.code_postal || '')} ${CR.escape(p.ville || '')}</p>
+                        <div class="hero-facts mt-md">
+                            ${p.annee_creation ? `<div class="fact"><span class="fact-icon">🗓️</span><div><div class="fact-label">Depuis</div><div class="fact-value">${p.annee_creation}</div></div></div>` : ''}
+                            ${p.capacite ? `<div class="fact"><span class="fact-icon">👥</span><div><div class="fact-label">Capacite</div><div class="fact-value">${p.capacite}</div></div></div>` : ''}
+                            <div class="fact"><span class="fact-icon">🎟️</span><div><div class="fact-label">Evenements a venir</div><div class="fact-value">${p.events?.length || 0}</div></div></div>
+                            <div class="fact"><span class="fact-icon">📅</span><div><div class="fact-label">Historique</div><div class="fact-value">${p.total_events_count || 0} total</div></div></div>
+                        </div>
+                    </div>
+                </section>
+
+                ${galerieHtml}
+
+                <section class="section event-layout">
+                    <div class="container">
+                        <div class="event-body">
+                            <main class="event-main">
+                                <h2>A propos du lieu</h2>
+                                <p class="event-desc">${CR.escape(p.description || '')}</p>
+
+                                ${p.tarifs_entree ? `<div class="info-block"><h3>💶 Tarifs</h3><p>${CR.escape(p.tarifs_entree)}</p></div>` : ''}
+
+                                ${horairesHtml}
+                                ${servicesHtml}
+                                ${accessHtml}
+                                ${transportHtml}
+
+                                <h2 class="mt-lg">Localisation</h2>
+                                <div id="place-map" style="height:400px;border-radius:var(--cr-radius);overflow:hidden;border:1px solid var(--cr-border);"></div>
+
+                                <h2 class="mt-lg">Prochains evenements (${p.events?.length || 0})</h2>
+                                ${eventsHtml}
+                            </main>
+
+                            <aside class="event-aside">
+                                <div class="card info-sidebar">
+                                    <h3>📇 Contact</h3>
+                                    <ul class="info-list">
+                                        ${p.adresse ? `<li><strong>Adresse :</strong><br>${CR.escape(p.adresse)}${p.code_postal ? ', ' + CR.escape(p.code_postal) : ''} ${CR.escape(p.ville || '')}</li>` : ''}
+                                        ${p.telephone ? `<li><strong>Tel :</strong> <a href="tel:${CR.escape(p.telephone)}">${CR.escape(p.telephone)}</a></li>` : ''}
+                                        ${p.email ? `<li><strong>Email :</strong> <a href="mailto:${CR.escape(p.email)}">${CR.escape(p.email)}</a></li>` : ''}
+                                        ${p.site_web ? `<li><strong>Web :</strong> <a href="${CR.escape(p.site_web)}" target="_blank" rel="noopener">${CR.escape(p.site_web.replace(/^https?:\/\//, ''))}</a></li>` : ''}
+                                    </ul>
+                                    <a class="btn btn-outline btn-block mt-md" href="https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}" target="_blank" rel="noopener">🗺️ Itineraire Google Maps</a>
+                                    <a class="btn btn-ghost btn-block btn-sm mt-sm" href="https://www.openstreetmap.org/?mlat=${p.latitude}&mlon=${p.longitude}#map=17/${p.latitude}/${p.longitude}" target="_blank" rel="noopener">📌 Voir sur OpenStreetMap</a>
+                                </div>
+                                ${p.capacite ? `
+                                <div class="card info-sidebar mt-md">
+                                    <h3>ℹ️ Informations</h3>
+                                    <ul class="info-list">
+                                        ${p.capacite ? `<li><strong>Capacite :</strong> ${p.capacite} personnes</li>` : ''}
+                                        ${p.annee_creation ? `<li><strong>Creation :</strong> ${p.annee_creation}</li>` : ''}
+                                        <li><strong>Type :</strong> ${CR.catLabel(p.category)}</li>
+                                        <li><strong>Statut :</strong> ${p.is_independent ? 'Lieu independant ⭐' : 'Institutionnel'}</li>
+                                        <li><strong>Coordonnees GPS :</strong><br><span class="small muted">${p.latitude?.toFixed(4)}, ${p.longitude?.toFixed(4)}</span></li>
+                                    </ul>
+                                </div>` : ''}
+                            </aside>
+                        </div>
+                    </div>
+                </section>`;
+
+                // Map
+                if (p.latitude && p.longitude) {
+                    setTimeout(() => {
+                        const map = L.map('place-map', { scrollWheelZoom: false }).setView([p.latitude, p.longitude], 16);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors', maxZoom: 19
+                        }).addTo(map);
+                        L.marker([p.latitude, p.longitude]).addTo(map)
+                            .bindPopup(`<strong>${p.nom}</strong><br>${p.adresse || ''}`).openPopup();
+                    }, 100);
+                }
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="container section"><p class="alert alert-danger">${CR.escape(e.message)}</p></div>`;
+            }
+        })();
+
+        window.swapHero = (url) => {
+            const h = document.querySelector('.event-hero');
+            if (h) h.style.backgroundImage = `linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.35)), url('${url}')`;
+            document.querySelectorAll('.gallery-thumbs img').forEach(el => el.classList.toggle('active', el.src === url));
+        };
+    </script>
+</body>
+</html>

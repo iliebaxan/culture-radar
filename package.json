@@ -1,0 +1,43 @@
+{
+  "name": "culture-radar",
+  "version": "1.0.0",
+  "description": "CultureRadar - La boussole culturelle. Plateforme intelligente de recommandations culturelles.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed": "node database/seed.js",
+    "export-sql": "node database/export.js",
+    "sync-openagenda": "node database/sync-openagenda.js",
+    "sync-all": "node database/sync-all.js",
+    "diag-openagenda": "node database/diagnose-openagenda.js",
+    "purge-demo": "node database/purge-demo.js",
+    "reset-stats": "node database/reset-stats.js",
+    "init": "node database/seed.js && echo 'Base de donnees initialisee.'"
+  },
+  "keywords": [
+    "culture",
+    "recommandations",
+    "france",
+    "evenements",
+    "culture-radar"
+  ],
+  "author": "Agence Digitale - IA School Bachelor IA & Management",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

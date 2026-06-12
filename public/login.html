@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - CultureRadar</title>
+    <meta name="description" content="Connectez-vous a CultureRadar pour acceder a vos recommandations culturelles personnalisees.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+
+    <main class="section">
+        <div class="container" style="max-width: 460px;">
+            <div class="card" style="padding: 2rem;">
+                <div class="text-center mb-md">
+                    <img src="/img/logo.png" alt="CultureRadar" width="72" height="72" style="display:block;margin:0 auto;">
+                    <h1 style="font-size:1.75rem;margin-top:.5rem;">Bon retour !</h1>
+                    <p class="muted">Connectez-vous pour acceder a vos recommandations personnalisees.</p>
+                </div>
+                <form id="login-form" autocomplete="on">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required autocomplete="email" placeholder="vous@exemple.fr">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Mot de passe</label>
+                        <input type="password" id="password" name="password" required autocomplete="current-password" minlength="6">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="login-btn">Se connecter</button>
+                </form>
+                <div id="login-error" class="alert alert-danger mt-md" style="display:none;"></div>
+                <p class="muted text-center small mt-md">
+                    Pas encore de compte ? <a href="/register.html">Creer un compte</a>
+                </p>
+                <details class="mt-md">
+                    <summary class="small muted" style="cursor:pointer;">🔐 Comptes de demonstration</summary>
+                    <div class="small mt-sm" style="background:var(--cr-bg-alt);padding:.75rem;border-radius:var(--cr-radius-sm);">
+                        <p style="margin-bottom:.35rem;"><strong>👑 Admin :</strong> <button type="button" class="btn-link-fake" onclick="fillCreds('admin@culture-radar.fr','admin123')">admin@culture-radar.fr</button> / admin123</p>
+                        <p style="margin-bottom:.35rem;"><strong>👤 Utilisateur :</strong> <button type="button" class="btn-link-fake" onclick="fillCreds('marie.dupont@exemple.fr','demo1234')">marie.dupont@exemple.fr</button> / demo1234</p>
+                        <p style="margin-bottom:.35rem;"><strong>🎭 Pro (lieu) :</strong> <button type="button" class="btn-link-fake" onclick="fillCreds('theatre.belleville@exemple.fr','pro1234')">theatre.belleville@exemple.fr</button> / pro1234</p>
+                        <p class="muted" style="font-size:.8rem;margin-top:.5rem;">Cliquez sur un email pour pre-remplir.</p>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </main>
+
+    <div id="cr-footer-placeholder"></div>
+
+    <style>
+        .btn-link-fake { background:none; border:none; padding:0; color:var(--cr-primary); cursor:pointer; font-family:inherit; font-size:inherit; text-decoration:underline; }
+        .btn-link-fake:hover { color:var(--cr-accent); }
+    </style>
+
+    <script src="/js/common.js"></script>
+    <script>
+        // Si deja connecte, rediriger vers le dashboard approprie
+        const existingUser = CR.user();
+        if (existingUser && CR.token()) {
+            const dest = existingUser.role === 'admin' ? '/admin.html'
+                       : existingUser.role === 'pro' ? '/pro.html'
+                       : '/profile.html';
+            const redirect = new URLSearchParams(location.search).get('redirect');
+            if (!redirect) location.href = dest;
+        }
+
+        function fillCreds(email, password) {
+            document.getElementById('email').value = email;
+            document.getElementById('password').value = password;
+            document.getElementById('email').focus();
+        }
+        window.fillCreds = fillCreds;
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const errEl = document.getElementById('login-error');
+            errEl.style.display = 'none';
+            btn.disabled = true;
+            const originalLabel = btn.textContent;
+            btn.textContent = 'Connexion...';
+            try {
+                const data = await CR.post('/auth/login', {
+                    email: document.getElementById('email').value.trim(),
+                    password: document.getElementById('password').value
+                });
+                CR.setAuth(data.token, data.user);
+                CR.toast('Bienvenue ' + (data.user.prenom || data.user.nom) + ' !', 'success');
+                const redirect = new URLSearchParams(location.search).get('redirect');
+                const dest = redirect || (data.user.role === 'admin' ? '/admin.html'
+                                       : data.user.role === 'pro' ? '/pro.html'
+                                       : '/recommendations.html');
+                setTimeout(() => location.href = dest, 400);
+            } catch (err) {
+                errEl.textContent = err.message || 'Erreur de connexion';
+                errEl.style.display = 'block';
+                btn.disabled = false;
+                btn.textContent = originalLabel;
+            }
+        });
+    </script>
+</body>
+</html>

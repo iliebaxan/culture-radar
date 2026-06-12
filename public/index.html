@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CultureRadar - La boussole culturelle dont vous avez besoin</title>
+    <meta name="description" content="CultureRadar : plateforme intelligente de recommandations culturelles. Theatre, musique, expositions, patrimoine... trouvez ce qui vous ressemble, pres de chez vous.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+
+    <section class="hero">
+        <div class="container">
+            <h1>La culture locale,<br><span>enfin a votre portee.</span></h1>
+            <p class="lead">
+                CultureRadar vous recommande les sorties culturelles qui vous ressemblent : theatre, musique, expositions, patrimoine...
+                Intelligemment adaptees a vos gouts, votre localisation, votre temps libre et meme la meteo.
+            </p>
+            <div class="hero-actions">
+                <a href="/recommendations.html" class="btn btn-primary">🧭 Decouvrir mes recommandations</a>
+                <a href="/events.html" class="btn btn-outline">Parcourir le catalogue</a>
+            </div>
+
+            <div class="mt-lg grid grid-4" style="max-width: 880px;">
+                <div class="kpi-card">
+                    <div class="label">Evenements</div>
+                    <div class="value" id="kpi-events">—</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="label">Lieux culturels</div>
+                    <div class="value" id="kpi-places">—</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="label">Lieux independants</div>
+                    <div class="value" id="kpi-indep">—</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="label">Villes couvertes</div>
+                    <div class="value" id="kpi-villes">—</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div class="text-center mb-lg">
+                <h2>Une plateforme qui <em>pense</em> a votre place</h2>
+                <p class="muted" style="max-width: 640px; margin: 0 auto;">
+                    Fini les catalogues impersonnels. CultureRadar analyse vos gouts, votre contexte et la realite du terrain pour vous proposer des experiences vraiment pertinentes.
+                </p>
+            </div>
+
+            <div class="grid grid-3">
+                <div class="feature-card">
+                    <div class="icon">🎯</div>
+                    <h3>Recommandations personnalisees</h3>
+                    <p class="muted">Nos algorithmes combinent vos preferences culturelles, votre geolocalisation et votre emploi du temps pour des suggestions vraiment adaptees.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🌦️</div>
+                    <h3>Donnees temps reel</h3>
+                    <p class="muted">Meteo, trafic, transports publics : nos recommandations s adaptent aux conditions du moment pour ne jamais vous decevoir.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">⭐</div>
+                    <h3>Badge CultureRadar</h3>
+                    <p class="muted">Nous valorisons les lieux independants et meconnus pour une diversite culturelle reelle, au-dela des grands noms.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🏛️</div>
+                    <h3>Espace pro pour les lieux</h3>
+                    <p class="muted">Referencez gratuitement vos evenements et boostez leur visibilite avec nos packs promotion.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📊</div>
+                    <h3>Carnet de bord culturel</h3>
+                    <p class="muted">Gardez une trace de vos sorties, notez vos experiences, planifiez vos envies avec votre agenda personnel.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🤝</div>
+                    <h3>Partenariats territoriaux</h3>
+                    <p class="muted">Nous travaillons main dans la main avec les collectivites pour donner de la visibilite a la culture locale.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" style="background:var(--cr-bg-alt);">
+        <div class="container">
+            <div class="text-center mb-lg">
+                <h2>Explorez par categorie</h2>
+                <p class="muted">Cliquez pour filtrer immediatement le catalogue.</p>
+            </div>
+            <div class="cat-tiles">
+                <a href="/events.html?category=theatre" class="cat-tile" data-cat="theatre">
+                    <span class="cat-emoji">🎭</span><span class="cat-name">Theatre</span>
+                    <span class="cat-count" data-cat-count="theatre">—</span>
+                </a>
+                <a href="/events.html?category=musique" class="cat-tile" data-cat="musique">
+                    <span class="cat-emoji">🎵</span><span class="cat-name">Musique</span>
+                    <span class="cat-count" data-cat-count="musique">—</span>
+                </a>
+                <a href="/events.html?category=exposition" class="cat-tile" data-cat="exposition">
+                    <span class="cat-emoji">🖼️</span><span class="cat-name">Expositions</span>
+                    <span class="cat-count" data-cat-count="exposition">—</span>
+                </a>
+                <a href="/events.html?category=patrimoine" class="cat-tile" data-cat="patrimoine">
+                    <span class="cat-emoji">🏛️</span><span class="cat-name">Patrimoine</span>
+                    <span class="cat-count" data-cat-count="patrimoine">—</span>
+                </a>
+                <a href="/events.html?category=danse" class="cat-tile" data-cat="danse">
+                    <span class="cat-emoji">💃</span><span class="cat-name">Danse</span>
+                    <span class="cat-count" data-cat-count="danse">—</span>
+                </a>
+                <a href="/events.html?category=cinema" class="cat-tile" data-cat="cinema">
+                    <span class="cat-emoji">🎬</span><span class="cat-name">Cinema</span>
+                    <span class="cat-count" data-cat-count="cinema">—</span>
+                </a>
+                <a href="/events.html?category=litterature" class="cat-tile" data-cat="litterature">
+                    <span class="cat-emoji">📚</span><span class="cat-name">Litterature</span>
+                    <span class="cat-count" data-cat-count="litterature">—</span>
+                </a>
+                <a href="/events.html?category=festival" class="cat-tile" data-cat="festival">
+                    <span class="cat-emoji">🎉</span><span class="cat-name">Festivals</span>
+                    <span class="cat-count" data-cat-count="festival">—</span>
+                </a>
+                <a href="/events.html?category=atelier" class="cat-tile" data-cat="atelier">
+                    <span class="cat-emoji">🎨</span><span class="cat-name">Ateliers</span>
+                    <span class="cat-count" data-cat-count="atelier">—</span>
+                </a>
+                <a href="/events.html?category=jeune_public" class="cat-tile" data-cat="jeune_public">
+                    <span class="cat-emoji">🧸</span><span class="cat-name">Jeune public</span>
+                    <span class="cat-count" data-cat-count="jeune_public">—</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div class="flex-between mb-lg" style="flex-wrap:wrap; gap:1rem;">
+                <div>
+                    <h2>Prochainement pres de chez vous</h2>
+                    <p class="muted">Un aperçu des evenements bientot disponibles.</p>
+                </div>
+                <a href="/events.html" class="btn btn-outline">Voir tous les evenements →</a>
+            </div>
+            <div id="featured-events" class="grid grid-3">
+                <div class="loader-full"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container text-center">
+            <h2>Pret a decouvrir la culture autrement ?</h2>
+            <p class="muted mb-lg">Inscrivez-vous gratuitement, indiquez vos preferences, et laissez la boussole faire le reste.</p>
+            <a href="/register.html" class="btn btn-primary">Creer mon compte gratuit</a>
+        </div>
+    </section>
+
+    <div id="cr-footer-placeholder"></div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        (async () => {
+            try {
+                const events = await CR.get('/events?limit=6');
+                const html = events.map(e => CR.renderEventCard(e)).join('');
+                document.getElementById('featured-events').innerHTML = html || '<p class="muted">Aucun evenement pour l instant.</p>';
+                CR.applyHearts();
+
+                // KPIs (calcul cote client simple)
+                const allEvents = await CR.get('/events?limit=500&upcoming=0');
+                document.getElementById('kpi-events').textContent = allEvents.length;
+                const villes = new Set(allEvents.map(e => e.ville).filter(Boolean));
+                document.getElementById('kpi-villes').textContent = villes.size;
+                const places = await CR.get('/places?limit=500');
+                document.getElementById('kpi-places').textContent = places.length;
+                document.getElementById('kpi-indep').textContent = places.filter(p => p.is_independent).length;
+
+                // Compteurs par categorie (depuis l API meta filters)
+                try {
+                    const meta = await CR.get('/events/filters/meta');
+                    const counts = {};
+                    (meta.categories || []).forEach(c => counts[c.value] = c.count);
+                    document.querySelectorAll('[data-cat-count]').forEach(el => {
+                        const c = el.dataset.catCount;
+                        el.textContent = counts[c] != null ? counts[c] + ' evt' : '0 evt';
+                    });
+                } catch {}
+            } catch (e) {
+                document.getElementById('featured-events').innerHTML = '<p class="alert alert-danger">Impossible de charger les evenements : ' + e.message + '</p>';
+            }
+        })();
+    </script>
+</body>
+</html>

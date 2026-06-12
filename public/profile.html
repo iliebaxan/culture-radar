@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon espace - CultureRadar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+
+    <main class="section">
+        <div class="container">
+            <h1 style="font-size:2rem;">Mon espace culturel</h1>
+            <p class="muted mb-lg">Gerez vos envies, vos reservations, vos avis et vos preferences.</p>
+
+            <div class="grid dash-grid" id="kpi-user"></div>
+
+            <div class="mt-lg flex filters" style="gap:.5rem;">
+                <div class="filter-chip active" onclick="showTab('envies')" data-tab="envies">💖 Mes envies</div>
+                <div class="filter-chip" onclick="showTab('reservations')" data-tab="reservations">🎟️ Reservations</div>
+                <div class="filter-chip" onclick="showTab('preferences')" data-tab="preferences">⚙️ Preferences</div>
+                <div class="filter-chip" onclick="showTab('profile')" data-tab="profile">👤 Profil</div>
+                <div class="filter-chip" onclick="showTab('abonnement')" data-tab="abonnement">💎 Abonnement</div>
+            </div>
+
+            <div id="tab-envies" class="tab mt-md"></div>
+            <div id="tab-reservations" class="tab mt-md hidden"></div>
+            <div id="tab-preferences" class="tab mt-md hidden"></div>
+            <div id="tab-profile" class="tab mt-md hidden"></div>
+            <div id="tab-abonnement" class="tab mt-md hidden"></div>
+        </div>
+    </main>
+
+    <div id="cr-footer-placeholder"></div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        const user = CR.requireAuth();
+        if (!user) throw 0;
+
+        const CATEGORIES = ['theatre','musique','exposition','patrimoine','danse','cinema','litterature','festival','atelier','jeune_public'];
+
+        function showTab(name) {
+            document.querySelectorAll('.filter-chip[data-tab]').forEach(el => el.classList.toggle('active', el.dataset.tab === name));
+            document.querySelectorAll('.tab').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + name).classList.remove('hidden');
+        }
+        window.showTab = showTab;
+
+        async function renderKpis(reservations) {
+            const envies = reservations.filter(r => r.status === 'envie').length;
+            const resas = reservations.filter(r => r.status === 'reserve').length;
+            const passes = reservations.filter(r => new Date(r.date_debut) < new Date()).length;
+            document.getElementById('kpi-user').innerHTML = `
+                <div class="kpi-card"><div class="label">Envies</div><div class="value">${envies}</div></div>
+                <div class="kpi-card"><div class="label">Reservations</div><div class="value">${resas}</div></div>
+                <div class="kpi-card"><div class="label">Sorties passees</div><div class="value">${passes}</div></div>
+                <div class="kpi-card"><div class="label">Abonnement</div><div class="value" style="font-size:1.25rem;">${user.subscription_type}</div></div>
+            `;
+        }
+
+        function renderEnvies(reservations) {
+            const envies = reservations.filter(r => r.status === 'envie');
+            // Update local cache for hearts
+            const set = new Set(envies.map(r => r.event_id)); CR.saveEnvies(set);
+            const host = document.getElementById('tab-envies');
+            if (!envies.length) {
+                host.innerHTML = `
+                    <div class="card" style="padding:2rem;text-align:center;">
+                        <div style="font-size:3rem;">💖</div>
+                        <h3>Aucune envie pour l instant</h3>
+                        <p class="muted">Parcourez les evenements et cliquez sur le coeur pour les ajouter ici.</p>
+                        <a class="btn btn-primary mt-md" href="/events.html">Decouvrir des evenements</a>
+                    </div>`;
+                return;
+            }
+            host.innerHTML = `
+                <p class="muted mb-md">${envies.length} evenement${envies.length>1?'s':''} dans vos envies. Cliquez sur "Reserver" pour acceder a la billetterie officielle.</p>
+                <div class="grid grid-3">
+                    ${envies.map(r => {
+                        const ev = { id: r.event_id, titre: r.titre, date_debut: r.date_debut, image_url: r.image_url, category: r.category, ville: r.ville, gratuit: r.gratuit, prix_min: r.prix_min, prix_max: r.prix_max };
+                        const img = CR.eventImage(ev, 800);
+                        const reserveUrl = r.url_billetterie || '';
+                        return `
+                        <div class="card event-card" data-event-id="${r.event_id}">
+                            <a href="/event.html?id=${r.event_id}" class="event-card-link">
+                                <div class="event-img-wrap">
+                                    <img class="card-img" src="${CR.escape(img)}" alt="${CR.escape(r.titre)}" loading="lazy" onerror="this.onerror=null;this.src='${CR.fallbackImage(r.category, 800)}'">
+                                </div>
+                                <div class="card-body">
+                                    <div class="event-meta">${CR.catIcon(r.category)} ${CR.catLabel(r.category)}${r.ville ? ' • ' + CR.escape(r.ville) : ''}</div>
+                                    <div class="event-title">${CR.escape(r.titre)}</div>
+                                    <p class="muted small">📅 ${CR.fmtDate(r.date_debut)}${r.duree_minutes ? ' • ⏱️ ' + CR.fmtDuration(r.duree_minutes) : ''}</p>
+                                    <p class="small"><span class="badge badge-primary">${CR.fmtPrix(r)}</span></p>
+                                </div>
+                            </a>
+                            <div class="card-actions">
+                                <a class="btn btn-primary btn-sm" href="/event.html?id=${r.event_id}">Voir</a>
+                                ${reserveUrl ? `<a class="btn btn-outline btn-sm" href="${CR.escape(reserveUrl)}" target="_blank" rel="noopener" onclick="CR.track('reservation_redirect', { event_id: ${r.event_id} })">🎟️ Reserver ↗</a>` : `<a class="btn btn-outline btn-sm" href="/reservation.html?event_id=${r.event_id}">🎟️ Reserver</a>`}
+                                <button class="btn btn-ghost btn-sm" onclick="removeRes(${r.id})" title="Retirer de mes envies">🗑️</button>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>`;
+        }
+
+        function renderReservations(reservations) {
+            const resas = reservations.filter(r => r.status === 'reserve' || r.status === 'participe');
+            document.getElementById('tab-reservations').innerHTML = resas.length ? `
+                <div class="table-wrap"><table class="tbl">
+                    <thead><tr><th>Evenement</th><th>Date</th><th>Reference</th><th>Statut</th><th>Places</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        ${resas.map(r => {
+                            const countdown = Math.ceil((new Date(r.date_debut) - Date.now()) / (1000*60*60*24));
+                            const badge = countdown > 0 ? `<span class="badge">dans ${countdown}j</span>` : countdown === 0 ? '<span class="badge badge-accent">Aujourd hui !</span>' : '<span class="badge">Passee</span>';
+                            return `<tr>
+                                <td><a href="/event.html?id=${r.event_id}">${CR.escape(r.titre)}</a><br><span class="muted small">${CR.escape(r.place_nom || '')} ${r.ville ? '· ' + CR.escape(r.ville) : ''}</span></td>
+                                <td>${CR.fmtDate(r.date_debut)}<br>${badge}</td>
+                                <td><code class="small">${CR.escape(r.reference || '—')}</code></td>
+                                <td><span class="badge ${r.status === 'reserve' ? 'badge-primary' : 'badge-success'}">${r.status}</span></td>
+                                <td>${r.nb_places}</td>
+                                <td class="flex gap-sm">
+                                    <a class="btn btn-outline btn-sm" href="/reservation.html?resa=${r.id}">Detail</a>
+                                    <a class="btn btn-ghost btn-sm" href="${CR.icsUrl({ id: r.event_id, titre: r.titre, date_debut: r.date_debut, place_nom: r.place_nom, ville: r.ville, description: '' })}" download="reservation-${r.id}.ics">📅</a>
+                                    <button class="btn btn-ghost btn-sm" onclick="removeRes(${r.id})">Annuler</button>
+                                </td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table></div>
+            ` : '<p class="muted">Aucune reservation. <a href="/events.html">Parcourez le catalogue</a> pour en faire.</p>';
+        }
+
+        async function renderPreferences() {
+            const me = await CR.get('/auth/me');
+            const current = (me.preferences || []).map(p => p.category);
+            document.getElementById('tab-preferences').innerHTML = `
+                <div class="card" style="padding:1.5rem;">
+                    <h3>Vos preferences culturelles</h3>
+                    <p class="muted">Selectionnez les categories qui vous interessent pour ameliorer vos recommandations.</p>
+                    <div class="filters mt-md" id="pref-chips">
+                        ${CATEGORIES.map(c => `<div class="filter-chip ${current.includes(c) ? 'active' : ''}" data-cat="${c}" onclick="togglePref(this)">${CR.catIcon(c)} ${CR.catLabel(c)}</div>`).join('')}
+                    </div>
+                    <button class="btn btn-primary mt-md" onclick="savePrefs()">Enregistrer</button>
+                </div>`;
+        }
+        window.togglePref = (el) => el.classList.toggle('active');
+        window.savePrefs = async () => {
+            const cats = Array.from(document.querySelectorAll('#pref-chips .filter-chip.active')).map(el => ({ category: el.dataset.cat, weight: 1 }));
+            try { await CR.put('/auth/preferences', { preferences: cats }); CR.toast('Preferences enregistrees', 'success'); }
+            catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        async function renderProfile() {
+            const me = await CR.get('/auth/me');
+            document.getElementById('tab-profile').innerHTML = `
+                <div class="card" style="padding:1.5rem;max-width:680px;">
+                    <h3>Informations personnelles</h3>
+                    <p class="muted small mb-md">Connecte avec <strong>${CR.escape(me.email)}</strong></p>
+                    <div class="form-row">
+                        <div class="form-group"><label>Prenom</label><input id="pf-prenom" value="${CR.escape(me.prenom || '')}"></div>
+                        <div class="form-group"><label>Nom</label><input id="pf-nom" value="${CR.escape(me.nom || '')}"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Ville</label><input id="pf-ville" value="${CR.escape(me.ville || '')}"></div>
+                        <div class="form-group"><label>Code postal</label><input id="pf-cp" value="${CR.escape(me.code_postal || '')}"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Mode de deplacement</label>
+                            <select id="pf-mobility">
+                                <option value="walk" ${me.mobility_mode==='walk'?'selected':''}>A pied</option>
+                                <option value="bike" ${me.mobility_mode==='bike'?'selected':''}>Velo</option>
+                                <option value="transit" ${me.mobility_mode==='transit'?'selected':''}>Transports en commun</option>
+                                <option value="car" ${me.mobility_mode==='car'?'selected':''}>Voiture</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Rayon max (km)</label><input type="number" id="pf-max-km" min="1" max="200" value="${me.max_distance_km || 15}"></div>
+                    </div>
+                    <div class="form-group"><label>Bio</label><textarea id="pf-bio" placeholder="Quelques mots sur vous, vos gouts...">${CR.escape(me.bio || '')}</textarea></div>
+                    <label class="filter-option"><input type="checkbox" id="pf-news" ${me.newsletter ? 'checked' : ''}> Recevoir la newsletter hebdomadaire</label>
+                    <div class="mt-md flex gap-sm" style="flex-wrap:wrap;">
+                        <button class="btn btn-primary" onclick="saveProfile()">💾 Enregistrer</button>
+                        <button class="btn btn-outline" onclick="updateLocation()">📍 Utiliser ma position GPS</button>
+                    </div>
+                </div>
+
+                <div class="card mt-lg" style="padding:1.5rem;max-width:680px;">
+                    <h3>🔒 Changer mon mot de passe</h3>
+                    <div class="form-group"><label>Mot de passe actuel</label><input type="password" id="pwd-current" autocomplete="current-password"></div>
+                    <div class="form-group"><label>Nouveau mot de passe</label><input type="password" id="pwd-new" minlength="6" autocomplete="new-password"></div>
+                    <div class="form-group"><label>Confirmer le nouveau mot de passe</label><input type="password" id="pwd-confirm" minlength="6" autocomplete="new-password"></div>
+                    <button class="btn btn-primary" onclick="changePassword()">🔐 Modifier le mot de passe</button>
+                </div>
+
+                <div class="card mt-lg" style="padding:1.5rem;max-width:680px;border:1px solid var(--cr-danger);">
+                    <h3 style="color:var(--cr-danger);">⚠️ Zone dangereuse</h3>
+                    <p class="muted small">Supprimer mon compte effacera definitivement toutes vos donnees (envies, reservations, avis).</p>
+                    <button class="btn btn-danger mt-sm" onclick="deleteAccount()">🗑️ Supprimer mon compte</button>
+                </div>`;
+        }
+        window.saveProfile = async () => {
+            try {
+                await CR.put('/auth/me', {
+                    prenom: document.getElementById('pf-prenom').value,
+                    nom: document.getElementById('pf-nom').value,
+                    ville: document.getElementById('pf-ville').value,
+                    code_postal: document.getElementById('pf-cp').value,
+                    mobility_mode: document.getElementById('pf-mobility').value,
+                    max_distance_km: Number(document.getElementById('pf-max-km').value),
+                    bio: document.getElementById('pf-bio').value,
+                    newsletter: document.getElementById('pf-news').checked
+                });
+                // Refresh user en cache local pour MAJ header
+                const me = await CR.get('/auth/me');
+                CR.setAuth(CR.token(), me);
+                CR.toast('Profil enregistre', 'success');
+                CR.renderHeader();
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+        window.updateLocation = async () => {
+            const loc = await CR.getLocation();
+            if (!loc) return CR.toast('Impossible d obtenir la position. Verifiez les permissions du navigateur.', 'error');
+            try {
+                await CR.put('/auth/me', { latitude: loc.lat, longitude: loc.lng });
+                CR.toast(`Position enregistree (${loc.lat.toFixed(3)}, ${loc.lng.toFixed(3)})`, 'success');
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+        window.changePassword = async () => {
+            const current = document.getElementById('pwd-current').value;
+            const newPwd = document.getElementById('pwd-new').value;
+            const confirm = document.getElementById('pwd-confirm').value;
+            if (!current || !newPwd) return CR.toast('Tous les champs sont requis', 'error');
+            if (newPwd.length < 6) return CR.toast('6 caracteres minimum', 'error');
+            if (newPwd !== confirm) return CR.toast('Les nouveaux mots de passe ne correspondent pas', 'error');
+            try {
+                await CR.post('/auth/password', { currentPassword: current, newPassword: newPwd });
+                CR.toast('Mot de passe modifie. Veuillez vous reconnecter.', 'success', 4000);
+                document.getElementById('pwd-current').value = '';
+                document.getElementById('pwd-new').value = '';
+                document.getElementById('pwd-confirm').value = '';
+                setTimeout(() => CR.logout(), 2000);
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+        window.deleteAccount = async () => {
+            const phrase = prompt('Tapez "SUPPRIMER" pour confirmer la suppression definitive de votre compte.');
+            if (phrase !== 'SUPPRIMER') return;
+            try {
+                await CR.del('/auth/me');
+                CR.toast('Compte supprime. A bientot !', 'success');
+                setTimeout(() => CR.logout(), 1500);
+            } catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        async function renderAbonnement() {
+            document.getElementById('tab-abonnement').innerHTML = `
+                <div class="card" style="padding:1.5rem;">
+                    <h3>Votre abonnement</h3>
+                    <p class="muted">Vous etes actuellement sur le plan <strong>${CR.escape(user.subscription_type || 'free')}</strong>.</p>
+                    <div class="alert alert-info mt-md">
+                        <strong>📢 Souscription</strong> : pour souscrire ou changer de plan,
+                        <a href="/contact.html?plan=premium">contactez notre equipe</a>. Reponse sous 48h.
+                    </div>
+                    <div class="flex gap-sm mt-md" style="flex-wrap:wrap;">
+                        <a class="btn btn-primary" href="/pricing.html">Voir les tarifs</a>
+                        <a class="btn btn-outline" href="/contact.html">Nous contacter</a>
+                    </div>
+                </div>`;
+        }
+
+        window.setStatus = async (event_id, status) => {
+            try { await CR.post('/reservations', { event_id, status }); CR.toast('Mis a jour', 'success'); loadAll(); }
+            catch (e) { CR.toast(e.message, 'error'); }
+        };
+        window.removeRes = async (id) => {
+            if (!confirm('Supprimer ?')) return;
+            try { await CR.del('/reservations/' + id); loadAll(); }
+            catch (e) { CR.toast(e.message, 'error'); }
+        };
+
+        async function loadAll() {
+            const reservations = await CR.get('/reservations');
+            renderKpis(reservations);
+            renderEnvies(reservations);
+            renderReservations(reservations);
+            renderPreferences();
+            renderProfile();
+            renderAbonnement();
+            // Ouverture d un tab specifique via hash
+            const hash = location.hash.replace('#', '');
+            if (['envies','reservations','preferences','profile','abonnement'].includes(hash)) showTab(hash);
+        }
+        loadAll();
+    </script>
+</body>
+</html>

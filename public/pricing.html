@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarifs - CultureRadar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="cr-header-placeholder"></div>
+
+    <section class="hero">
+        <div class="container text-center">
+            <h1>Des <span>tarifs clairs</span>,<br>pour une culture partagee.</h1>
+            <p class="lead" style="margin:0 auto 2rem;">Utilisez CultureRadar gratuitement. Debloquez des fonctionnalites avancees quand vous le souhaitez.</p>
+            <div class="alert alert-info" style="max-width:720px;margin:1rem auto;text-align:left;">
+                <strong>📢 Souscription</strong> : pour souscrire a une offre payante ou demander une demo,
+                merci de <a href="/contact.html">nous contacter directement</a>. Notre equipe vous repond sous 48h.
+            </div>
+            <div id="current-plan" class="mt-md"></div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <h2>Pour les particuliers</h2>
+            <div class="grid grid-2 mt-md">
+                <div class="card" style="padding:2rem;">
+                    <div class="badge mb-sm">GRATUIT</div>
+                    <h3>Decouverte</h3>
+                    <p class="muted mb-md">Pour commencer en douceur.</p>
+                    <div style="font-size:2.5rem;font-weight:800;color:var(--cr-dark);">0 EUR</div>
+                    <p class="muted">pour toujours</p>
+                    <ul class="mt-md" style="margin-left:1.25rem;font-size:.95rem;">
+                        <li>Recommandations personnalisees</li>
+                        <li>Catalogue complet des evenements</li>
+                        <li>Carnet de bord culturel basique</li>
+                        <li>Avis et notations</li>
+                    </ul>
+                    <a class="btn btn-outline btn-block mt-lg" href="/register.html">Creer mon compte gratuit</a>
+                </div>
+                <div class="card" style="padding:2rem;border:2px solid var(--cr-primary);">
+                    <div class="badge badge-primary mb-sm">POPULAIRE</div>
+                    <h3>Premium</h3>
+                    <p class="muted mb-md">Pour les passionnes de culture.</p>
+                    <div style="font-size:2.5rem;font-weight:800;color:var(--cr-dark);">4,99 EUR</div>
+                    <p class="muted">par mois, sans engagement</p>
+                    <ul class="mt-md" style="margin-left:1.25rem;font-size:.95rem;">
+                        <li>Tout de l offre Decouverte</li>
+                        <li>Planification intelligente des sorties</li>
+                        <li>Recommandations multi-profils (famille, amis)</li>
+                        <li>Synchronisation agenda personnel</li>
+                        <li>Alertes personnalisees</li>
+                        <li>Sans publicite</li>
+                    </ul>
+                    <a class="btn btn-primary btn-block mt-lg" href="/contact.html?plan=premium" onclick="CR.track('pricing_cta',{plan:'premium'})">Nous contacter pour Premium</a>
+                </div>
+            </div>
+
+            <h2 class="mt-lg">Pour les lieux et organisateurs</h2>
+            <div class="grid grid-3 mt-md">
+                <div class="card" style="padding:2rem;">
+                    <h3>Freemium</h3>
+                    <div style="font-size:2rem;font-weight:800;color:var(--cr-dark);">0 EUR</div>
+                    <p class="muted">publication gratuite</p>
+                    <ul class="mt-md" style="margin-left:1.25rem;font-size:.95rem;">
+                        <li>Publication illimitee d evenements</li>
+                        <li>Fiche lieu basique</li>
+                        <li>Statistiques basiques</li>
+                    </ul>
+                    <a href="/register.html?role=pro" class="btn btn-outline btn-block mt-lg">Creer un compte pro</a>
+                </div>
+                <div class="card" style="padding:2rem;border:2px solid var(--cr-accent);">
+                    <div class="badge badge-accent mb-sm">RECOMMANDE</div>
+                    <h3>Pro Local</h3>
+                    <div style="font-size:2rem;font-weight:800;color:var(--cr-dark);">29 EUR</div>
+                    <p class="muted">par mois</p>
+                    <ul class="mt-md" style="margin-left:1.25rem;font-size:.95rem;">
+                        <li>Tout du Freemium</li>
+                        <li>Fiche lieu enrichie</li>
+                        <li>Boost pack inclus (1 evt/mois mis en avant)</li>
+                        <li>Statistiques detaillees</li>
+                        <li>Badge CultureRadar</li>
+                    </ul>
+                    <a class="btn btn-primary btn-block mt-lg" href="/contact.html?plan=pro_local" onclick="CR.track('pricing_cta',{plan:'pro_local'})">Nous contacter pour Pro Local</a>
+                </div>
+                <div class="card" style="padding:2rem;">
+                    <h3>Entreprise</h3>
+                    <div style="font-size:2rem;font-weight:800;color:var(--cr-dark);">149 EUR</div>
+                    <p class="muted">par mois - pack RH</p>
+                    <ul class="mt-md" style="margin-left:1.25rem;font-size:.95rem;">
+                        <li>Acces collaborateurs (250+)</li>
+                        <li>Recommandations d entreprise</li>
+                        <li>Tableau de bord RSE culturel</li>
+                        <li>Integration SIRH</li>
+                    </ul>
+                    <a class="btn btn-outline btn-block mt-lg" href="/contact.html?plan=enterprise" onclick="CR.track('pricing_cta',{plan:'enterprise'})">Nous contacter</a>
+                </div>
+            </div>
+
+            <h2 class="mt-lg">Packs promotion (pour booster un evenement)</h2>
+            <div class="grid grid-3 mt-md">
+                <div class="card" style="padding:1.5rem;">
+                    <h3>Boost 7 jours</h3>
+                    <div style="font-size:1.75rem;font-weight:800;">15 EUR</div>
+                    <p class="muted small">Mise en avant sur 7 jours dans les recommandations ciblees.</p>
+                    <a href="/contact.html?plan=boost_7j" class="btn btn-ghost btn-sm mt-sm" onclick="CR.track('pricing_cta',{plan:'boost_7j'})">Nous contacter →</a>
+                </div>
+                <div class="card" style="padding:1.5rem;">
+                    <h3>Premium 30 jours</h3>
+                    <div style="font-size:1.75rem;font-weight:800;">49 EUR</div>
+                    <p class="muted small">Mise en avant sur 30 jours + newsletter ciblee.</p>
+                    <a href="/contact.html?plan=premium_30j" class="btn btn-ghost btn-sm mt-sm" onclick="CR.track('pricing_cta',{plan:'premium_30j'})">Nous contacter →</a>
+                </div>
+                <div class="card" style="padding:1.5rem;">
+                    <h3>Sponsorise 60 jours</h3>
+                    <div style="font-size:1.75rem;font-weight:800;">99 EUR</div>
+                    <p class="muted small">Mise en avant sur 60 jours + reseaux sociaux + newsletter.</p>
+                    <a href="/contact.html?plan=sponsored" class="btn btn-ghost btn-sm mt-sm" onclick="CR.track('pricing_cta',{plan:'sponsored'})">Nous contacter →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="cr-footer-placeholder"></div>
+    <script src="/js/common.js"></script>
+    <script>
+        const u = CR.user();
+
+        async function refreshCurrent() {
+            const host = document.getElementById('current-plan');
+            if (!u) {
+                host.innerHTML = `<span class="badge">Mode invite — <a href="/login.html">Connectez-vous</a> ou <a href="/register.html">creez un compte</a></span>`;
+                return;
+            }
+            host.innerHTML = `<span class="badge">Connecte en tant que <strong>${CR.escape(u.prenom || u.nom)}</strong></span>`;
+        }
+
+        refreshCurrent();
+    </script>
+</body>
+</html>

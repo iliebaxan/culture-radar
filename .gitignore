@@ -1,5 +1,7 @@
 node_modules/
-database/*.db
+# La DB SQLite est volontairement versionnee (catalogue d'~19 000 events).
+# Cela evite de perdre la base au cold-start sur Render Free.
+# Seuls les fichiers temporaires SQLite (journals, WAL/SHM) sont ignores.
 database/*.db-journal
 database/*.db-shm
 database/*.db-wal

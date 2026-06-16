@@ -321,14 +321,15 @@ const CR = {
     },
 
     // ---- Consentement cookies (RGPD) ----
-    // Stocke le choix dans un cookie "cr_consent" (180 jours, reco CNIL).
+    // Stocke le choix dans sessionStorage : il est purge a la fermeture du
+    // navigateur, ce qui re-affiche le bandeau a chaque nouvelle session
+    // (chaque "connexion" au site).
     // Valeurs : 'all' (tout accepte) ou 'essential' (essentiels uniquement).
     consentGet() {
-        const m = document.cookie.match(/(?:^|;\s*)cr_consent=([^;]+)/);
-        return m ? decodeURIComponent(m[1]) : null;
+        try { return sessionStorage.getItem('cr_consent'); } catch { return null; }
     },
     consentSet(value) {
-        document.cookie = 'cr_consent=' + encodeURIComponent(value) + '; max-age=' + (180 * 24 * 3600) + '; path=/; SameSite=Lax';
+        try { sessionStorage.setItem('cr_consent', value); } catch {}
         const b = document.getElementById('cr-cookie-banner');
         if (b) b.remove();
         if (value === 'all') {
@@ -341,7 +342,7 @@ const CR = {
     },
     cookieSettings(e) {
         if (e && e.preventDefault) e.preventDefault();
-        document.cookie = 'cr_consent=; max-age=0; path=/; SameSite=Lax';
+        try { sessionStorage.removeItem('cr_consent'); } catch {}
         CR.renderCookieBanner();
         return false;
     },

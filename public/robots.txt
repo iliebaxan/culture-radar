@@ -1,0 +1,21 @@
+# =========================================================
+# robots.txt — CultureRadar
+# Indique aux moteurs de recherche ce qu'ils peuvent
+# explorer ou doivent ignorer, et où trouver le sitemap.
+# =========================================================
+
+User-agent: *
+Allow: /
+
+# Zones privées ou utilitaires : pas d'indexation
+Disallow: /admin.html
+Disallow: /profile.html
+Disallow: /login.html
+Disallow: /register.html
+Disallow: /onboarding.html
+Disallow: /reservation.html
+Disallow: /api/
+Disallow: /404.html
+
+# Sitemap
+Sitemap: https://culture-radar.onrender.com/sitemap.xml

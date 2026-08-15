@@ -266,7 +266,7 @@ const CR = {
                     <div>
                         <h4>Professionnels</h4>
                         <a href="/pricing.html">Tarifs Pro</a>
-                        <a href="/register.html?role=pro">Espace organisateur</a>
+                        <a href="/devenir-pro.html">Espace organisateur</a>
                         <a href="/about.html#partenariats">Partenariats</a>
                     </div>
                     <div>

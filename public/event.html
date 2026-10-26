@@ -52,7 +52,7 @@
             const indep = e.is_independent ? '<span class="badge badge-cr">⭐ Badge CultureRadar - Lieu independant</span>' : '';
             const promoted = e.is_promoted ? '<span class="badge badge-accent">Mis en avant</span>' : '';
             const status = e.status === 'cancelled' ? '<span class="badge" style="background:#fee2e2;color:#991b1b;">Annule</span>' : '';
-            const past = isPast ? '<span class="badge" style="background:#f3f4f6;">Termine</span>' : '';
+            const past = isPast ? '<span class="badge badge-past">Termine</span>' : '';
             const img = e.image_url || CR.fallbackImage(e.category, 1600);
             const galerie = e.galerie?.length ? e.galerie : [img];
 

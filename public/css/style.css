@@ -12,6 +12,9 @@
     /* CTA (boutons/badges a texte blanc) : rose fonce, contraste eleve sur blanc */
     --cr-cta: #BE185D;
     --cr-cta-hover: #9D1350;
+    /* Degrades a texte blanc : couleur pleine de repli (lue par WAVE) + couleur de fin */
+    --cr-grad-solid: #5B21B6;
+    --cr-grad-end: #1F1147;
     --cr-accent: #1F1147;         /* Encre profonde - titres, badges, "RADAR" */
     --cr-accent-2: #5B5470;
     --cr-gold: #EC4899;           /* Rose - colonne, badges, details */
@@ -49,10 +52,11 @@
     --cr-primary: #A78BFA;
     --cr-primary-2: #C4B5FD;
     --cr-primary-light: #DDD6FE;
-    /* CTA : rose clair, choisie independamment du fond de page
-       car elle doit rester contrastee (>=4.5:1) avec le texte blanc des boutons. */
-    --cr-cta: #F472B6;
-    --cr-cta-hover: #F9A8D4;
+    /* CTA : rose fonce, contraste >= 4.5:1 avec le texte blanc des boutons (6:1). */
+    --cr-cta: #BE185D;
+    --cr-cta-hover: #9D1350;
+    --cr-grad-solid: #5B21B6;
+    --cr-grad-end: #5B21B6;
     --cr-accent: #C4B5FD;
     --cr-accent-2: #DDD6FE;
     --cr-gold: #F9A8D4;
@@ -196,7 +200,7 @@ h4 { font-size: 1.05rem; margin-bottom: .5rem; }
     white-space: nowrap;
 }
 .btn:hover { text-decoration: none; }
-.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.btn[disabled] { background: #E5E7EB; color: #374151; border-color: #9CA3AF; cursor: not-allowed; }
 .btn-primary {
     background: var(--cr-cta);
     color: white;
@@ -325,6 +329,12 @@ input[type=checkbox] { accent-color: var(--cr-primary); width: auto; }
 .toast.error { background: var(--cr-danger); color: white; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 
+/* ============ Contrastes (WAVE) - corrections mode sombre ============ */
+:root[data-theme="dark"] .badge-cr { color: #1F1147; }
+:root[data-theme="dark"] .badge-warn { color: #FBBF24; }
+:root[data-theme="dark"] .toast.error { background: #B91C1C; }
+.badge-past { background: #E5E7EB; color: #374151; }
+
 /* ============ Hero ============ */
 .hero {
     padding: 4rem 0 3rem;
@@ -390,7 +400,7 @@ input[type=checkbox] { accent-color: var(--cr-primary); width: auto; }
 .cat-strip-tile .cs-count { font-size: .7rem; color: var(--cr-muted); }
 .cat-strip-tile:hover { transform: translateY(-2px); border-color: var(--cr-primary); }
 .cat-strip-tile.active {
-    background: linear-gradient(135deg, var(--cr-cta), var(--cr-accent));
+    background-color: var(--cr-grad-solid); background-image: linear-gradient(135deg, var(--cr-cta), var(--cr-grad-end));
     color: white; border-color: transparent;
 }
 .cat-strip-tile.active .cs-count { color: rgba(255,255,255,.85); }
@@ -412,7 +422,7 @@ input[type=checkbox] { accent-color: var(--cr-primary); width: auto; }
 }
 .view-btn:hover { background: var(--cr-overlay); }
 .view-btn.active {
-    background: linear-gradient(135deg, var(--cr-cta), var(--cr-accent));
+    background-color: var(--cr-grad-solid); background-image: linear-gradient(135deg, var(--cr-cta), var(--cr-grad-end));
     color: white;
 }
 
@@ -425,7 +435,7 @@ input[type=checkbox] { accent-color: var(--cr-primary); width: auto; }
 .feature-card .icon {
     width: 48px; height: 48px;
     border-radius: var(--cr-radius-sm);
-    background: linear-gradient(135deg, var(--cr-cta), var(--cr-accent));
+    background-color: var(--cr-grad-solid); background-image: linear-gradient(135deg, var(--cr-cta), var(--cr-grad-end));
     display: flex; align-items: center; justify-content: center;
     color: white; font-size: 1.5rem; margin-bottom: 1rem;
 }
@@ -447,7 +457,7 @@ input[type=checkbox] { accent-color: var(--cr-primary); width: auto; }
 .event-title { font-weight: 700; font-size: 1.05rem; color: var(--cr-dark); }
 .event-footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: .75rem; }
 .score-pill {
-    background: linear-gradient(135deg, var(--cr-cta), var(--cr-accent));
+    background-color: var(--cr-grad-solid); background-image: linear-gradient(135deg, var(--cr-cta), var(--cr-grad-end));
     color: white; font-weight: 700; font-size: .85rem;
     padding: .25rem .65rem; border-radius: 999px;
 }
@@ -543,12 +553,15 @@ input[type=checkbox] { accent-color: var(--cr-primary); width: auto; }
 
 /* ============ Event detail hero ============ */
 .event-hero {
+    background-color: #1F1147;
     background-size: cover; background-position: center;
     padding: 4rem 0 3rem;
     color: white;
     min-height: 440px;
     display: flex; align-items: flex-end;
 }
+.event-hero .badge { background: rgba(255,255,255,.15); color: #FFFFFF; border-color: rgba(255,255,255,.4); }
+.event-hero .badge-cr { background: #F9A8D4; color: #1F1147; border: none; }
 .event-hero-content h1 { color: white; margin: .5rem 0; }
 .back-link { display: inline-block; color: rgba(255,255,255,.9); text-decoration: none; margin-bottom: 1rem; font-size: .9rem; }
 .back-link:hover { color: white; text-decoration: underline; }
@@ -740,7 +753,7 @@ table.tbl tr:last-child td { border-bottom: none; }
     color: var(--cr-text);
 }
 code { font-family: 'SF Mono', Monaco, monospace; background: var(--cr-overlay); padding: .1rem .35rem; border-radius: 4px; font-size: .85em; color: var(--cr-text); }
-.btn.disabled, .btn[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+.btn.disabled, .btn[aria-disabled="true"] { background: #E5E7EB; color: #374151; border-color: #9CA3AF; pointer-events: none; }
 
 /* ============ Tabs (profile) ============ */
 .tab { animation: fadeIn .2s; }

@@ -250,10 +250,10 @@ const CR = {
                         <div style="display:flex;align-items:center;gap:.75rem;">
                             <img src="/img/logo.png" alt="" width="56" height="56" style="display:block;">
                             <div style="font-family:'Playfair Display',Georgia,serif;font-size:1.4rem;font-weight:700;letter-spacing:-.01em;">
-                                <span style="color:#E66B40;">Culture</span> <span style="color:#FFFFFF;">Radar</span>
+                                <span style="color:#A78BFA;">Culture</span> <span style="color:#FFFFFF;">Radar</span>
                             </div>
                         </div>
-                        <p class="mt-sm" style="color:#C8C4B0;max-width:340px;">
+                        <p class="mt-sm" style="color:#CDBEF0;max-width:340px;">
                             La boussole culturelle intelligente qui reconnecte les habitants a leur offre culturelle locale.
                         </p>
                     </div>

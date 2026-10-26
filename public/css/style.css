@@ -5,40 +5,40 @@
    ===================================================== */
 
 :root {
-    /* === Couleurs principales === */
-    --cr-primary: #D04D1E;        /* Orange brule - accents, liens, "CULTURE" */
-    --cr-primary-2: #B3401A;      /* Orange fonce - hover (liens/bordures) */
-    --cr-primary-light: #E66B40;
-    /* CTA (boutons/badges a texte blanc) : orange-marron fonce valide, ratio ~8:1 sur blanc (WCAG AAA) */
-    --cr-cta: #7D3C29;
-    --cr-cta-hover: #632F20;
-    --cr-accent: #233D4F;         /* Navy profond - titres, badges, "RADAR" */
-    --cr-accent-2: #2F5066;
-    --cr-gold: #E69925;           /* Dore - colonne, badges, details */
-    --cr-dark: #1A2F3D;           /* Navy fonce - h1, h2 */
-    --cr-text: #233D4F;
-    --cr-text-2: #3A5365;
-    --cr-muted: #6B7C88;
+    /* === Couleurs principales (maquette) === */
+    --cr-primary: #5B21B6;        /* Violet - accents, liens, "CULTURE" */
+    --cr-primary-2: #3B1272;      /* Violet fonce - hover (liens/bordures) */
+    --cr-primary-light: #8B5CF6;
+    /* CTA (boutons/badges a texte blanc) : rose fonce, contraste eleve sur blanc */
+    --cr-cta: #BE185D;
+    --cr-cta-hover: #9D1350;
+    --cr-accent: #1F1147;         /* Encre profonde - titres, badges, "RADAR" */
+    --cr-accent-2: #5B5470;
+    --cr-gold: #EC4899;           /* Rose - colonne, badges, details */
+    --cr-dark: #1F1147;           /* Encre foncee - h1, h2 */
+    --cr-text: #1F1147;
+    --cr-text-2: #5B5470;
+    --cr-muted: #655E7A;         /* durci pour AA (4.5:1) sur blanc */
     /* === Fonds === */
-    --cr-bg: #EFEDE7;             /* Beige ivoire - fond principal */
-    --cr-bg-alt: #F5F3ED;
-    --cr-bg-2: #FBFAF6;           /* Cartes / surfaces */
-    --cr-border: #D9D4C5;
-    --cr-border-strong: #B8B09C;
+    --cr-bg: #FFFFFF;             /* Blanc - fond principal */
+    --cr-bg-alt: #F4F2FB;
+    --cr-bg-2: #F4F2FB;           /* Cartes / surfaces */
+    --cr-border: #E7E2F5;
+    --cr-border-strong: #8A7DBD;  /* durci pour 3:1 (contours de champs, WCAG 1.4.11) */
     /* === Status === */
-    --cr-success: #2E7D5B;
+    --cr-success: #1F6B4A;        /* assombri pour AA (4.5:1) */
     --cr-warn: #E69925;
     --cr-danger: #C62207;
     /* === Layout === */
-    --cr-shadow: 0 1px 3px rgba(35,61,79,.06), 0 1px 2px rgba(35,61,79,.04);
-    --cr-shadow-lg: 0 10px 25px -5px rgba(35,61,79,.12), 0 8px 10px -6px rgba(35,61,79,.06);
+    --cr-shadow: 0 1px 3px rgba(31,17,71,.06), 0 1px 2px rgba(31,17,71,.04);
+    --cr-shadow-lg: 0 10px 25px -5px rgba(31,17,71,.12), 0 8px 10px -6px rgba(31,17,71,.06);
     --cr-radius: 8px;
     --cr-radius-sm: 4px;
-    --cr-header-bg: rgba(239,237,231,.94);
-    --cr-input-bg: #FBFAF6;
-    --cr-hero-grad: linear-gradient(160deg, #F5F3ED 0%, #EFEDE7 60%, #E8E4D7 100%);
-    --cr-bar-grad: linear-gradient(160deg, #F5F3ED 0%, #EFEDE7 100%);
-    --cr-overlay: rgba(35,61,79,.04);
+    --cr-header-bg: rgba(255,255,255,.94);
+    --cr-input-bg: #F4F2FB;
+    --cr-hero-grad: linear-gradient(160deg, #F4F2FB 0%, #FFFFFF 60%, #ECE4FA 100%);
+    --cr-bar-grad: linear-gradient(160deg, #F4F2FB 0%, #FFFFFF 100%);
+    --cr-overlay: rgba(31,17,71,.04);
     /* === Typographie de marque === */
     --cr-font-serif: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
     --cr-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -46,32 +46,36 @@
 
 /* ============ DARK MODE ============ */
 :root[data-theme="dark"] {
-    --cr-primary: #E66B40;
-    --cr-primary-2: #F08555;
-    --cr-primary-light: #F4A07A;
-    /* CTA : meme couleur qu'en mode clair, choisie independamment du fond de page
+    --cr-primary: #A78BFA;
+    --cr-primary-2: #C4B5FD;
+    --cr-primary-light: #DDD6FE;
+    /* CTA : rose clair, choisie independamment du fond de page
        car elle doit rester contrastee (>=4.5:1) avec le texte blanc des boutons. */
-    --cr-cta: #7D3C29;
-    --cr-cta-hover: #632F20;
-    --cr-accent: #6B95B0;
-    --cr-accent-2: #8FB1C8;
-    --cr-gold: #F0B14A;
-    --cr-dark: #F5F3ED;
-    --cr-text: #E8E4D7;
-    --cr-text-2: #D0CCBC;
-    --cr-muted: #9FA9B2;
-    --cr-bg: #131E26;
-    --cr-bg-alt: #1A2B36;
-    --cr-bg-2: #213544;
-    --cr-border: #2F4555;
-    --cr-border-strong: #3F5868;
+    --cr-cta: #F472B6;
+    --cr-cta-hover: #F9A8D4;
+    --cr-accent: #C4B5FD;
+    --cr-accent-2: #DDD6FE;
+    --cr-gold: #F9A8D4;
+    --cr-dark: #F4F2FB;
+    --cr-text: #ECE7F9;
+    --cr-text-2: #CDC3E6;
+    --cr-muted: #9B93B3;
+    --cr-bg: #1A1030;
+    --cr-bg-alt: #241A3D;
+    --cr-bg-2: #2C2049;
+    --cr-border: #3D2F5C;
     --cr-shadow: 0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
     --cr-shadow-lg: 0 10px 25px -5px rgba(0,0,0,.5), 0 8px 10px -6px rgba(0,0,0,.3);
-    --cr-header-bg: rgba(19,30,38,.94);
-    --cr-input-bg: #2A3E4F;
-    --cr-hero-grad: linear-gradient(160deg, #1A2B36 0%, #213544 60%, #131E26 100%);
-    --cr-bar-grad: linear-gradient(160deg, #1A2B36 0%, #213544 100%);
+    --cr-header-bg: rgba(26,16,48,.94);
+    --cr-input-bg: #2C2049;
+    --cr-hero-grad: linear-gradient(160deg, #241A3D 0%, #2C2049 60%, #1A1030 100%);
+    --cr-bar-grad: linear-gradient(160deg, #241A3D 0%, #2C2049 100%);
     --cr-overlay: rgba(255,255,255,.04);
+    /* Statuts recalcules pour AA sur fond sombre */
+    --cr-success: #34D399;
+    --cr-warn: #E69925;
+    --cr-danger: #F87171;
+    --cr-border-strong: #7A6AA3;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -168,7 +172,7 @@ h4 { font-size: 1.05rem; margin-bottom: .5rem; }
     font-size: 1.05rem; color: var(--cr-text);
     transition: transform .15s, background .15s;
 }
-.theme-toggle:hover { transform: scale(1.06); background: rgba(208,77,30,.12); }
+.theme-toggle:hover { transform: scale(1.06); background: rgba(91,33,182,.12); }
 
 .menu-toggle { display: none; background: none; border: none; cursor: pointer; font-size: 1.5rem; color: var(--cr-text); }
 
@@ -247,6 +251,7 @@ h4 { font-size: 1.05rem; margin-bottom: .5rem; }
 .form-group { margin-bottom: 1rem; }
 .form-group label { display: block; font-weight: 500; margin-bottom: .35rem; font-size: .9rem; color: var(--cr-text); }
 .form-control, input[type=text], input[type=email], input[type=password], input[type=date], input[type=datetime-local], input[type=number], input[type=tel], input[type=url], input[type=search], select, textarea {
+    border-color: var(--cr-border-strong);
     width: 100%;
     padding: .6rem .85rem;
     border: 1px solid var(--cr-border);
@@ -259,7 +264,7 @@ h4 { font-size: 1.05rem; margin-bottom: .5rem; }
 .form-control:focus, input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: var(--cr-primary);
-    box-shadow: 0 0 0 3px rgba(208,77,30,.18);
+    box-shadow: 0 0 0 3px rgba(91,33,182,.18);
 }
 ::placeholder { color: var(--cr-muted); opacity: .8; }
 textarea { min-height: 100px; resize: vertical; }
@@ -287,10 +292,10 @@ input[type=checkbox] { accent-color: var(--cr-primary); width: auto; }
     background: var(--cr-overlay); color: var(--cr-text);
     border: 1px solid var(--cr-border);
 }
-.badge-primary { background: rgba(208,77,30,.12); color: var(--cr-primary); border-color: rgba(208,77,30,.30); }
-.badge-accent  { background: rgba(35,61,79,.10);  color: var(--cr-accent);  border-color: rgba(35,61,79,.25); }
+.badge-primary { background: rgba(91,33,182,.12); color: var(--cr-primary); border-color: rgba(91,33,182,.30); }
+.badge-accent  { background: rgba(31,17,71,.10);  color: var(--cr-accent);  border-color: rgba(31,17,71,.25); }
 .badge-success { background: rgba(46,125,91,.12); color: var(--cr-success); border-color: rgba(46,125,91,.25); }
-.badge-warn    { background: rgba(230,153,37,.15); color: var(--cr-gold);   border-color: rgba(230,153,37,.35); }
+.badge-warn    { background: rgba(230,153,37,.15); color: #86550A;   border-color: rgba(230,153,37,.35); } /* amber fonce, AA sur fond amber clair */
 .badge-cr {
     background: var(--cr-gold);
     color: var(--cr-accent); border: none; font-weight: 700;
@@ -298,9 +303,9 @@ input[type=checkbox] { accent-color: var(--cr-primary); width: auto; }
 
 .active-chip {
     display: inline-flex; align-items: center; gap: .4rem;
-    background: rgba(208,77,30,.12); color: var(--cr-primary);
+    background: rgba(91,33,182,.12); color: var(--cr-primary);
     padding: .3rem .7rem; border-radius: 999px; font-size: .85rem; font-weight: 500;
-    border: 1px solid rgba(208,77,30,.30);
+    border: 1px solid rgba(91,33,182,.30);
 }
 .active-chip button { background: none; border: none; color: var(--cr-primary); cursor: pointer; font-size: 1rem; padding: 0; line-height: 1; }
 
@@ -622,7 +627,7 @@ input[type=checkbox] { accent-color: var(--cr-primary); width: auto; }
     display: grid; grid-template-columns: auto 1fr; gap: 1.25rem;
     align-items: center; padding-bottom: 1rem; border-bottom: 1px solid var(--cr-border);
 }
-.booking-date { text-align: center; padding: .5rem 1rem; background: rgba(208,77,30,.08); border-radius: var(--cr-radius-sm); }
+.booking-date { text-align: center; padding: .5rem 1rem; background: rgba(91,33,182,.08); border-radius: var(--cr-radius-sm); }
 .booking-day { font-size: 2.5rem; font-weight: 800; color: var(--cr-primary); line-height: 1; }
 .booking-price { text-align: right; }
 .big-price { font-size: 1.75rem; font-weight: 800; color: var(--cr-dark); }
@@ -683,15 +688,15 @@ input[type=checkbox] { accent-color: var(--cr-primary); width: auto; }
 
 /* ============ Footer ============ */
 .cr-footer {
-    background: #1A2F3D; color: #E0DCC8;
+    background: #1F1147; color: #D8CFF2;
     padding: 3rem 0 1.5rem; margin-top: 4rem;
 }
-:root[data-theme="dark"] .cr-footer { background: #0E1820; border-top: 1px solid var(--cr-border); }
+:root[data-theme="dark"] .cr-footer { background: #120A24; border-top: 1px solid var(--cr-border); }
 .cr-footer h4 { color: white; margin-bottom: .75rem; font-size: 1rem; font-family: var(--cr-font-serif); }
-.cr-footer a { color: #C8C4B0; display: block; padding: .25rem 0; font-size: .9rem; }
+.cr-footer a { color: #CDBEF0; display: block; padding: .25rem 0; font-size: .9rem; }
 .cr-footer a:hover { color: var(--cr-gold); }
 .cr-footer .grid { grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2rem; }
-.cr-footer-bottom { border-top: 1px solid rgba(232,228,215,.12); padding-top: 1.5rem; margin-top: 2rem; font-size: .85rem; color: #9FA9B2; }
+.cr-footer-bottom { border-top: 1px solid rgba(216,207,242,.12); padding-top: 1.5rem; margin-top: 2rem; font-size: .85rem; color: #A79BC7; }
 @media (max-width: 760px) { .cr-footer .grid { grid-template-columns: 1fr 1fr; } }
 
 /* ============ Tables (admin) ============ */
@@ -745,7 +750,7 @@ code { font-family: 'SF Mono', Monaco, monospace; background: var(--cr-overlay);
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000;
     background: var(--cr-bg-2);
     border-top: 2px solid var(--cr-primary);
-    box-shadow: 0 -8px 24px rgba(35,61,79,.18);
+    box-shadow: 0 -8px 24px rgba(31,17,71,.18);
     padding: 1rem 0;
     animation: cookieSlideUp .35s ease;
 }
